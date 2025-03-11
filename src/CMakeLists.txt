@@ -1,0 +1,5 @@
+file(GLOB SOURCES CONFIGURE_DEPENDS *.cpp)
+add_executable(run ${SOURCES} ${HEADERS})
+target_include_directories(run PRIVATE ${CMAKE_SOURCE_DIR}/include PRIVATE ${CMAKE_SOURCE_DIR}/lib)
+target_link_libraries(run PRIVATE lib)
+file(COPY ${CMAKE_SOURCE_DIR}/data DESTINATION ${CMAKE_BINARY_DIR}/src)
