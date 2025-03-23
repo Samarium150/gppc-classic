@@ -26,7 +26,7 @@
 #include <fstream>
 #include <iostream>
 
-using namespace gppc;
+namespace gppc::lib {
 
 Experiment::Experiment(const int start_x, const int start_y, const int goal_x, const int goal_y,
                        const int bucket, const double distance, std::string map)
@@ -67,7 +67,7 @@ int Experiment::GetYScale() const { return scale_y_; }
 
 int Experiment::GetBucket() const { return bucket_; }
 
-int Experiment::GetDistance() const { return distance_; }
+double Experiment::GetDistance() const { return distance_; }
 
 std::string Experiment::GetMapName() const { return map_; }
 
@@ -131,8 +131,10 @@ std::size_t ScenarioLoader::GetNumExperiments() const { return experiments_.size
 
 std::string ScenarioLoader::GetScenarioName() const { return filename_; }
 
-Experiment ScenarioLoader::GetNthExperiment(const std::size_t which) const {
+const Experiment& ScenarioLoader::GetExperiment(const std::size_t which) const {
     return experiments_[which];
 }
 
 void ScenarioLoader::AddExperiment(const Experiment& which) { experiments_.push_back(which); }
+
+}  // namespace gppc::lib

@@ -26,7 +26,8 @@
 
 #include <chrono>
 
-namespace gppc {
+namespace gppc::lib {
+
 class Timer {
 public:
     using clock = std::chrono::steady_clock;
@@ -43,6 +44,7 @@ private:
     clock::time_point start_time_;
     duration elapsed_time_ = duration::zero();
 };
-}  // namespace gppc
+
+}  // namespace gppc::lib
 
 #endif  // LIB_GPPC_TIMER_H_

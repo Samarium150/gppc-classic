@@ -26,33 +26,36 @@
 
 #include <vector>
 
-namespace gppc {
+namespace gppc::lib {
 
 struct Point {
-    Point operator+(const Point& other) const;
-    Point operator-(const Point& other) const;
-    bool operator==(const Point& other) const;
-    bool operator!=(const Point& other) const;
     int x = 0;
     int y = 0;
+
+    Point operator+(const Point& other) const noexcept { return {x + other.x, y + other.y}; }
+    Point operator-(const Point& other) const noexcept { return {x - other.x, y - other.y}; }
+    bool operator==(const Point& other) const noexcept { return x == other.x && y == other.y; }
+    bool operator!=(const Point& other) const noexcept { return x != other.x || y != other.y; }
 };
 
 class PathValidator {
 public:
     PathValidator(const std::vector<bool>& map, int width, int height);
 
-    bool Get(int x, int y) const noexcept;
+    [[nodiscard]] bool Get(int x, int y) const noexcept;
 
-    bool Get(const Point& point) const noexcept;
+    [[nodiscard]] bool Get(const Point& point) const noexcept;
 
-    bool IsValidPoint(const Point& point) const noexcept;
+    [[nodiscard]] bool IsValidPoint(const Point& point) const noexcept;
 
-    bool IsValidEdge(const Point& start, const Point& end) const noexcept;
+    [[nodiscard]] bool IsValidEdge(const Point& start, const Point& end) const noexcept;
 
 private:
-    bool IsValidCardinal(const Point& start, const Point& end, const Point& diff) const noexcept;
+    [[nodiscard]] bool IsValidCardinal(const Point& start, const Point& end,
+                                       const Point& diff) const noexcept;
 
-    bool IsValidOrdinal(const Point& start, const Point& end, const Point& diff) const noexcept;
+    [[nodiscard]] bool IsValidOrdinal(const Point& start, const Point& end,
+                                      const Point& diff) const noexcept;
 
     const std::vector<bool> map_;
     std::size_t width_;
@@ -87,6 +90,7 @@ int ValidatePath(const std::vector<bool>& map, const int width, const int height
     }
     return -1;
 }
-}  // namespace gppc
+
+}  // namespace gppc::lib
 
 #endif  // LIB_GPPC_PATH_VALIDATOR_H_

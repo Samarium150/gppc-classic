@@ -26,7 +26,7 @@
 
 #include <vector>
 
-namespace gppc {
+namespace gppc::lib {
 
 static constexpr int kNoScaling = -1;
 
@@ -45,15 +45,15 @@ public:
                std::string map);
     Experiment(int start_x, int start_y, int goal_x, int goal_y, int scale_x, int scale_y,
                int bucket, double distance, std::string map);
-    int GetStartX() const;
-    int GetStartY() const;
-    int GetGoalX() const;
-    int GetGoalY() const;
-    int GetXScale() const;
-    int GetYScale() const;
-    int GetBucket() const;
-    int GetDistance() const;
-    std::string GetMapName() const;
+    [[nodiscard]] int GetStartX() const;
+    [[nodiscard]] int GetStartY() const;
+    [[nodiscard]] int GetGoalX() const;
+    [[nodiscard]] int GetGoalY() const;
+    [[nodiscard]] int GetXScale() const;
+    [[nodiscard]] int GetYScale() const;
+    [[nodiscard]] int GetBucket() const;
+    [[nodiscard]] double GetDistance() const;
+    [[nodiscard]] std::string GetMapName() const;
 
 private:
     friend class ScenarioLoader;
@@ -69,14 +69,14 @@ public:
     ScenarioLoader() = default;
     explicit ScenarioLoader(std::string filename);
     void Save(const std::string &filename) const;
-    std::size_t GetNumExperiments() const;
-    std::string GetScenarioName() const;
-    Experiment GetNthExperiment(std::size_t which) const;
+    [[nodiscard]] std::size_t GetNumExperiments() const;
+    [[nodiscard]] std::string GetScenarioName() const;
+    [[nodiscard]] const Experiment &GetExperiment(std::size_t which) const;
     void AddExperiment(const Experiment &which);
 
 private:
     std::string filename_;
     std::vector<Experiment> experiments_;
 };
-}  // namespace gppc
+}  // namespace gppc::lib
 #endif  // LIB_GPPC_SCENARIO_LOADER_H_

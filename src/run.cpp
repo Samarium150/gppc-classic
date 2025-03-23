@@ -31,6 +31,7 @@
 #include <vector>
 
 #include "entry.h"
+#include "gppc.h"
 #include "path_validator.h"
 #include "scenario_loader.h"
 #include "timer.h"

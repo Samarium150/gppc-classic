@@ -23,7 +23,7 @@
 
 #include "timer.h"
 
-using namespace gppc;
+namespace gppc::lib {
 
 void Timer::StartTimer() { start_time_ = clock::now(); }
 
@@ -34,3 +34,5 @@ Timer::duration Timer::EndTimer() {
 }
 
 Timer::duration Timer::GetElapsedTime() const { return elapsed_time_; }
+
+}  // namespace gppc::lib

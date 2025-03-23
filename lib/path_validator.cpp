@@ -25,15 +25,7 @@ SOFTWARE.
 
 #include <cassert>
 
-using namespace gppc;
-
-Point Point::operator+(const Point& other) const { return {x + other.x, y + other.y}; }
-
-Point Point::operator-(const Point& other) const { return {x - other.x, y - other.y}; }
-
-bool Point::operator==(const Point& other) const { return x == other.x && y == other.y; }
-
-bool Point::operator!=(const Point& other) const { return x != other.x || y != other.y; }
+namespace gppc::lib {
 
 PathValidator::PathValidator(const std::vector<bool>& map, const int width, const int height)
     : map_(map),
@@ -81,7 +73,7 @@ bool PathValidator::IsValidEdge(const Point& start, const Point& end) const noex
 }
 
 bool PathValidator::IsValidCardinal(const Point& start, const Point& end,
-                                  const Point& diff) const noexcept {
+                                    const Point& diff) const noexcept {
     for (Point x = start; x != end; x = x + diff) {
         if (!Get(x)) {
             return false;
@@ -91,7 +83,7 @@ bool PathValidator::IsValidCardinal(const Point& start, const Point& end,
 }
 
 bool PathValidator::IsValidOrdinal(const Point& start, const Point& end,
-                                 const Point& diff) const noexcept {
+                                   const Point& diff) const noexcept {
     // check every 2x2 square along u-v
     for (Point x = start; x != end; x = x + diff) {
         if (!Get(x) || !Get(x.x + diff.x, x.y) || !Get(x.x, x.y + diff.y)) {
@@ -104,3 +96,5 @@ bool PathValidator::IsValidOrdinal(const Point& start, const Point& end,
     }
     return true;
 }
+
+}  // namespace gppc::lib
