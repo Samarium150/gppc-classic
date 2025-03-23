@@ -23,6 +23,7 @@
 
 #include "entry.h"
 
+#include "a_star.h"
 #include "baseline.h"
 
 using namespace gppc;
@@ -32,20 +33,20 @@ void PreprocessMap(const std::vector<bool> & /*bits*/, const int /*width*/, cons
 
 void *PrepareForSearch(const std::vector<bool> &bits, const int width, const int height,
                        const std::string & /*filename*/) {
-    auto *STS = new baseline::SpanningTreeSearch(bits, width, height);
-    return STS;
+    return new algorithm::AStar(bits, width, height);
 }
 
+// NOLINTNEXTLINE
 bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
-    auto *STS = static_cast<baseline::SpanningTreeSearch *>(data);
+    auto *search = static_cast<algorithm::AStar *>(data);
     path.clear();
-    if (const bool exists = STS->Search({s.x, s.y}, {g.x, g.y}); !exists) {
+    if (const bool exists = (*search)({s.x, s.y}, {g.x, g.y}); !exists) {
         return true;
     }
-    for (auto [x, y] : STS->GetPath()) {
+    for (auto [x, y] : search->GetPath()) {
         path.emplace_back(x, y);
     }
     return true;
 }
 
-std::string GetName() { return "example-SpanningTreeSearch-8N"; }
+std::string GetName() { return "A*"; }

@@ -21,45 +21,18 @@
  * SOFTWARE.
  */
 
-#include <cmath>
-#include <filesystem>
 #include <fstream>
-#include <iomanip>
-#include <ios>
 #include <iostream>
-#include <string>
-#include <vector>
 
-#include "entry.h"
+#include "a_star.h"
 #include "path_validator.h"
 #include "scenario_loader.h"
-#include "timer.h"
 
-using namespace gppc;
-
-namespace fs = std::filesystem;
-
-namespace {
-const std::string kIndexDir = "index_data";
-constexpr double kPathFirstStepLength = 20.0;
-
-std::string g_data;
-std::string g_map;
-std::string g_scene;
-std::string g_flag;
-std::vector<bool> g_map_data;
-int g_width;
-int g_height;
-bool g_pre = false;
-bool g_run = false;
-bool g_check = false;
-}  // namespace
-
-void LoadMap(const std::string &filename, std::vector<bool> &map, int &width, int &height) {
+static bool LoadMap(const std::string &filename, std::vector<bool> &map, int &width, int &height) {
     std::ifstream ifs(filename);
     if (!ifs) {
         std::cerr << "Error opening file: " << filename << std::endl;
-        return;
+        return false;
     }
     std::string token;
     ifs >> token;
@@ -73,7 +46,7 @@ void LoadMap(const std::string &filename, std::vector<bool> &map, int &width, in
     map.resize(height * width);
     std::string line;
     std::getline(ifs, line);
-    for (int y = 0; y < height; y++) {
+    for (int y = 0; y < height; ++y) {
         std::getline(ifs, line);
         int x = 0;
         for (const char c : line) {
@@ -82,149 +55,95 @@ void LoadMap(const std::string &filename, std::vector<bool> &map, int &width, in
             }
             if (x < width) {
                 map[y * width + x] = (c == '.' || c == 'G' || c == 'S');
-                x++;
+                ++x;
             }
         }
     }
+    return true;
 }
 
-double EuclideanDist(const gppc::xyLoc &a, const gppc::xyLoc &b) {
-    return std::hypot(b.x - a.x, b.y - a.y);
+static void PrintMap(const std::vector<bool> &map, const int width, const int height) {
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            std::cout << (map[y * width + x] ? '.' : '#');
+        }
+        std::cout << std::endl;
+    }
 }
 
-double GetPathLength(const std::vector<gppc::xyLoc> &path) {
+double EuclideanDist(const gppc::Point &a, const gppc::Point &b) {
+    const auto dx = std::abs(a.x - b.x);
+    const auto dy = std::abs(a.y - b.y);
+    return std::sqrt(dx * dx + dy * dy);
+}
+
+double GetPathLength(const std::vector<gppc::Point> &path) {
     double len = 0;
-    for (size_t i = 0; i + 1 < path.size(); i++) {
+    for (size_t i = 0; i + 1 < path.size(); ++i) {
         len += EuclideanDist(path[i], path[i + 1]);
     }
     return len;
 }
 
-int ValidatePath(const std::vector<gppc::xyLoc> &the_path) {
-    return lib::ValidatePath(g_map_data, g_width, g_height, the_path);
+template <typename T>
+static double Round(T f, const int n) {  // NOLINT
+    return std::round(f * std::pow(10, n)) / std::pow(10, n);
 }
 
-void RunExperiment(void *data) {
-    lib::Timer t;
-    lib::ScenarioLoader loader(g_scene);
-    std::vector<gppc::xyLoc> path;
-
-    const std::string result_file = "result.csv";
-    std::ofstream ofs(result_file);
-    const std::string header =
-        "map,scen,experiment_id,path_size,path_length,ref_length,time_cost,20steps_cost,"
-        "max_step_time";
-    ofs << header << std::endl;
-
-    for (int x = 0; x < loader.GetNumExperiments(); x++) {
-        xyLoc s{static_cast<int16_t>(loader.GetExperiment(x).GetStartX()),
-                static_cast<int16_t>(loader.GetExperiment(x).GetStartY())};
-        xyLoc g{static_cast<int16_t>(loader.GetExperiment(x).GetGoalX()),
-                static_cast<int16_t>(loader.GetExperiment(x).GetGoalY())};
-
-        path.clear();
-        using dur = lib::Timer::duration;
-        dur max_step = dur::zero(), t_cost = dur::zero(), t_cost_first = dur::zero();
-        bool done = false, done_first = false;
-        do {
-            t.StartTimer();
-            done = GetPath(data, s, g, path);
-            t.EndTimer();
-            max_step = std::max(max_step, t.GetElapsedTime());
-            t_cost += t.GetElapsedTime();
-            if (!done_first) {
-                t_cost_first += t.GetElapsedTime();
-                done_first = GetPathLength(path) >= kPathFirstStepLength - 1e-6;
+void PrintPathOnMap(const std::vector<bool> &map, const int width, const int height,
+                    const std::vector<gppc::lib::Point> &path) {
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            if (gppc::lib::Point(x, y) == path.front()) {
+                std::cout << 'S';
+                continue;
             }
-        } while (!done);
-        double path_len = GetPathLength(path);
-        double ref_len = loader.GetExperiment(x).GetDistance();
-
-        ofs << std::setprecision(9) << std::fixed;
-        ofs << g_map << "," << g_scene << "," << x << "," << path.size() << "," << path_len << ","
-            << ref_len << "," << t_cost.count() << "," << t_cost_first.count() << ","
-            << max_step.count() << std::endl;
-
-        if (g_check) {
-            std::cout << s.x << " " << s.y << " " << g.x << " " << g.y;
-            if (int valid = ValidatePath(path); valid < 0) {
-                std::cout << " valid";
-            } else {
-                std::cout << " invalid-" << valid;
+            if (gppc::lib::Point(x, y) == path.back()) {
+                std::cout << 'G';
+                continue;
             }
-            std::cout << " " << path.size();
-            for (const auto &[x, y] : path) {
-                std::cout << " " << x << " " << y;
+            if (std::ranges::find(path, gppc::lib::Point(x, y)) != path.end()) {
+                std::cout << 'x';
+                continue;
             }
-            std::cout << " " << std::setprecision(5) << path_len << std::endl;
+            std::cout << (map[y * width + x] ? '.' : '#');
         }
+        std::cout << std::endl;
     }
 }
 
-void PrintHelpInfo(char **argv) {
-    std::cout << "Invalid Arguments\nUsage " << argv[0] << " <flag> <map> <scenario>\n";
-    std::cout << "Flags:\n";
-    std::cout << "\t-full : Preprocess map and run scenario\n";
-    std::cout << "\t-pre  : Preprocess map\n";
-    std::cout << "\t-run  : Run scenario without preprocessing\n";
-    std::cout << "\t-check: Run for validation\n";
-}
-
-bool Parse(const int argc, char **argv) {
-    if (argc < 2) {
-        return false;
-    }
-    g_flag = std::string(argv[1]);
-    if (g_flag == "-full") {
-        g_pre = g_run = true;
-    } else if (g_flag == "-pre") {
-        g_pre = true;
-    } else if (g_flag == "-run") {
-        g_run = true;
-    } else if (g_flag == "-check") {
-        g_run = g_check = true;
-    } else {
-        return false;
-    }
-
-    if (argc < 3) {
-        return false;
-    }
-    g_map = std::string(argv[2]);
-
-    if (g_run) {
-        if (argc < 4) {
-            return false;
-        }
-        g_scene = std::string(argv[3]);
-    }
-    return true;
-}
-
-std::string GetBasename(const std::string &path) {
-    const fs::path p(path);
-    return p.stem().string();
-}
-
-int main(const int argc, char **argv) {
-    if (!Parse(argc, argv)) {
-        PrintHelpInfo(argv);
+int main() {
+    std::vector<bool> map;
+    int width, height;
+    if (!LoadMap("data/rmtst01.map", map, width, height)) {
         return 1;
     }
-
-    LoadMap(g_map, g_map_data, g_width, g_height);
-    g_data = kIndexDir + "/" + GetName() + "-" + GetBasename(g_map);
-
-    if (g_pre) {
-        PreprocessMap(g_map_data, g_width, g_height, g_data);
+    PrintMap(map, width, height);
+    const gppc::lib::ScenarioLoader loader("data/rmtst01.map.scen");
+    auto algo = gppc::algorithm::AStar(map, width, height);
+    constexpr auto weight = 2;
+    algo.SetPhi([&weight](const double h, const double g) { return g + weight * h; });
+    for (int n = 0; n < loader.GetNumExperiments(); ++n) {
+        const auto &experiment = loader.GetExperiment(n);
+        const auto start = gppc::Point(experiment.GetStartX(), experiment.GetStartY());
+        const auto goal = gppc::Point(experiment.GetGoalX(), experiment.GetGoalY());
+        const auto expected = Round(weight * experiment.GetDistance(), 3);
+        if (algo(start, goal)) {
+            if (const auto length = GetPathLength(algo.GetPath());
+                Round(length, 3) > expected ||
+                gppc::lib::ValidatePath(map, width, height, algo.GetPath()) != -1) {
+                std::cerr << std::setprecision(10) << n << ": " << start << " -> " << goal << " | "
+                          << length << "/" << expected << std::endl;
+            } else {
+                std::cout << std::setprecision(10) << n << ": " << start << " -> " << goal << " | "
+                          << length << "/" << expected << std::endl;
+            }
+        } else if (expected == 0) {
+            std::cout << n << ": " << start << " -> " << goal << " | No path" << std::endl;
+        } else {
+            std::cerr << n << ": " << start << " -> " << goal << " | No path / " << expected
+                      << std::endl;
+        }
     }
-
-    if (!g_run) {
-        return 0;
-    }
-
-    void *reference = PrepareForSearch(g_map_data, g_width, g_height, g_data);
-
-    RunExperiment(reference);
     return 0;
 }
