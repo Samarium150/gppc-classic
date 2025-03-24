@@ -26,22 +26,12 @@
 #include <limits>
 
 #include "grid.h"
+#include "open_closed_list.h"
 
 namespace gppc::algorithm {
 
 class AStar {
 public:
-    AStar(const std::vector<bool>& map, size_t width, size_t height);
-
-    [[nodiscard]] const std::vector<Point>& GetPath() const noexcept;
-
-    void SetHeuristic(std::function<double(const Point& s1, const Point& s2)> heuristic) noexcept;
-
-    void SetPhi(std::function<double(double h, double g)> phi) noexcept;
-
-    bool operator()(const Point& start, const Point& goal) noexcept;
-
-private:
     struct Node {
         size_t id = std::numeric_limits<size_t>::max();
         size_t parent_id = std::numeric_limits<size_t>::max();
@@ -49,13 +39,30 @@ private:
         double h = std::numeric_limits<double>::max();
         double f = std::numeric_limits<double>::max();
     };
-    struct CompareNode {
-        bool operator()(const Node& a, const Node& b) const noexcept { return a.f > b.f; }
-    };
 
+    AStar(const std::vector<bool>& map, size_t width, size_t height);
+
+    [[nodiscard]] const std::vector<Point>& GetPath() const noexcept;
+
+    [[nodiscard]] size_t GetNodeExpanded() const noexcept;
+
+    [[nodiscard]] const std::vector<Node>& GetNodes() const noexcept;
+
+    void SetHeuristic(std::function<double(const Point& s1, const Point& s2)> heuristic) noexcept;
+
+    void SetPhi(std::function<double(double h, double g)> phi) noexcept;
+
+    void StopAfterGoal(bool stop) noexcept;
+
+    bool operator()(const Point& start, const Point& goal) noexcept;
+
+private:
     Grid grid_;
     size_t node_expanded_{};
     std::vector<Point> path_{};
+    bool stop_after_goal_ = true;
+    OpenClosedList<Node, decltype([](const Node& a, const Node& b) { return a.f > b.f; })>
+        open_closed_list_;
 
     std::function<double(const Point& s1, const Point& s2)> heuristic_ =
         [](const Point&, const Point&) { return 0.0; };

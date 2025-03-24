@@ -28,9 +28,15 @@
 namespace gppc::algorithm {
 
 AStar::AStar(const std::vector<bool>& map, const size_t width, const size_t height)
-    : grid_(map, width, height), heuristic_(Grid::HCost) {}
+    : grid_(map, width, height), open_closed_list_(grid_.Size()), heuristic_(Grid::HCost) {}
 
 const std::vector<Point>& AStar::GetPath() const noexcept { return path_; }
+
+size_t AStar::GetNodeExpanded() const noexcept { return node_expanded_; }
+
+const std::vector<AStar::Node>& AStar::GetNodes() const noexcept {
+    return open_closed_list_.GetNodes();
+}
 
 void AStar::SetHeuristic(
     std::function<double(const Point& s1, const Point& s2)> heuristic) noexcept {
@@ -41,39 +47,36 @@ void AStar::SetPhi(std::function<double(double h, double g)> phi) noexcept {
     phi_ = std::move(phi);
 }
 
+void AStar::StopAfterGoal(const bool stop) noexcept { stop_after_goal_ = stop; }
+
 bool AStar::operator()(const Point& start, const Point& goal) noexcept {
     path_.clear();
     node_expanded_ = 0;
+    open_closed_list_.Reset();
     if (!grid_.Get(start) || !grid_.Get(goal)) {
         return false;
     }
     if (start == goal) {
         return true;
     }
-    std::priority_queue<Node, std::vector<Node>, CompareNode> open;
-    std::vector closed(grid_.Size(), false);
-    std::vector<Node> nodes(grid_.Size());
     const auto start_id = grid_.Pack(start);
     const auto goal_id = grid_.Pack(goal);
     const auto h = Grid::HCost(start, goal);
     const auto f = phi_(h, 0.0);
-    nodes[start_id] = {start_id, start_id, 0.0, h, f};
-    open.push(nodes[start_id]);
-    while (!open.empty()) {
-        const auto current = open.top();
-        open.pop();
-        if (current.id == goal_id) {
-            for (auto id = goal_id; id != start_id; id = nodes[id].parent_id) {
+    open_closed_list_.AddOpen(open_closed_list_.SetNode(start_id, {start_id, start_id, 0.0, h, f}));
+    while (!open_closed_list_.EmptyOpen()) {
+        const auto current = open_closed_list_.PopOpen();
+        if (stop_after_goal_ && current.id == goal_id) {
+            for (auto id = goal_id; id != start_id; id = open_closed_list_.GetNode(id).parent_id) {
                 path_.push_back(grid_.Unpack(id));
             }
             path_.push_back(start);
             std::ranges::reverse(path_);
             return true;
         }
-        if (closed[current.id]) {
+        if (!open_closed_list_.Close(current.id)) {
             continue;
         }
-        closed[current.id] = true;
         ++node_expanded_;
         auto [x, y] = grid_.Unpack(current.id);
         for (const auto& direction : grid_.Directions()) {
@@ -86,14 +89,15 @@ bool AStar::operator()(const Point& start, const Point& goal) noexcept {
             if (dx != 0 && dy != 0 && (!grid_.Get(xx, y) || !grid_.Get(x, yy))) {
                 continue;
             }
-            if (const auto successor_id = grid_.Pack(xx, yy); !closed[successor_id]) {
+            if (const auto successor_id = grid_.Pack(xx, yy);
+                !open_closed_list_.InClosed(successor_id)) {
                 if (const auto successor_g = current.g + Grid::GCost(direction);
-                    successor_g < nodes[successor_id].g) {
+                    successor_g < open_closed_list_.GetNode(successor_id).g) {
                     const auto successor_h = Grid::HCost(Point{xx, yy}, goal);
                     const auto successor_f = phi_(successor_h, successor_g);
-                    nodes[successor_id] = {successor_id, current.id, successor_g, successor_h,
-                                           successor_f};
-                    open.push(nodes[successor_id]);
+                    open_closed_list_.AddOpen(open_closed_list_.SetNode(
+                        successor_id,
+                        {successor_id, current.id, successor_g, successor_h, successor_f}));
                 }
             }
         }
