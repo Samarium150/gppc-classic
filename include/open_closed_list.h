@@ -29,15 +29,14 @@
 template <typename T, typename Compare>
 class OpenClosedList {
 public:
-    explicit OpenClosedList(size_t size) noexcept {
-        nodes_.resize(size);
-        closed_.resize(size, false);
-    }
+    OpenClosedList() noexcept = default;
 
-    void Reset() noexcept {
+    explicit OpenClosedList(const size_t size) noexcept { Reset(size); }
+
+    void Reset(const size_t size) noexcept {
         open_ = {};
-        closed_.assign(closed_.size(), false);
-        nodes_.assign(nodes_.size(), T{});
+        closed_.assign(size, false);
+        nodes_.assign(size, T{});
     }
 
     void AddOpen(const T node) noexcept { open_.push(node); }
@@ -47,6 +46,8 @@ public:
         open_.pop();
         return node;
     }
+
+    T PeekOpen() const noexcept { return open_.top(); }
 
     [[nodiscard]] bool EmptyOpen() const noexcept { return open_.empty(); }
 

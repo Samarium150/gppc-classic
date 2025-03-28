@@ -38,9 +38,13 @@ public:
         double g = std::numeric_limits<double>::max();
         double h = std::numeric_limits<double>::max();
         double f = std::numeric_limits<double>::max();
+
+        bool operator>(const Node& other) const noexcept { return f > other.f; }
     };
 
-    AStar(const std::vector<bool>& map, size_t width, size_t height);
+    AStar() noexcept = default;
+
+    AStar(const std::vector<bool>& map, size_t width, size_t height) noexcept;
 
     [[nodiscard]] const std::vector<Point>& GetPath() const noexcept;
 
@@ -48,24 +52,42 @@ public:
 
     [[nodiscard]] const std::vector<Node>& GetNodes() const noexcept;
 
-    void SetHeuristic(std::function<double(const Point& s1, const Point& s2)> heuristic) noexcept;
+    [[nodiscard]] Node PeekOpen() const noexcept;
 
-    void SetPhi(std::function<double(double h, double g)> phi) noexcept;
+    [[nodiscard]] bool EmptyOpen() const noexcept;
 
-    void StopAfterGoal(bool stop) noexcept;
+    AStar& SetHeuristic(std::function<double(const Point& s1, const Point& s2)> heuristic) noexcept;
+
+    AStar& SetPhi(std::function<double(double h, double g)> phi) noexcept;
+
+    AStar& StopAfterGoal(bool stop) noexcept;
+
+    void Reset() noexcept;
+
+    bool Init(const Point& start, const Point& goal) noexcept;
+
+    bool Init(const std::shared_ptr<Grid>& grid, const Point& start, const Point& goal) noexcept;
+
+    bool AddStart(const Point& point) noexcept;
+
+    bool operator()() noexcept;
 
     bool operator()(const Point& start, const Point& goal) noexcept;
 
+    bool operator()(const std::shared_ptr<Grid>& grid, const Point& start,
+                    const Point& goal) noexcept;
+
 private:
-    Grid grid_;
+    std::shared_ptr<Grid> grid_ = nullptr;
     size_t node_expanded_{};
     std::vector<Point> path_{};
+    Point start_{};
+    Point goal_{};
     bool stop_after_goal_ = true;
-    OpenClosedList<Node, decltype([](const Node& a, const Node& b) { return a.f > b.f; })>
-        open_closed_list_;
+    OpenClosedList<Node, std::greater<>> open_closed_list_{};
 
-    std::function<double(const Point& s1, const Point& s2)> heuristic_ =
-        [](const Point&, const Point&) { return 0.0; };
+    std::function<double(const Point&, const Point&)> heuristic_ =
+        [this](const Point&, const Point&) { return grid_ ? grid_->HCost(start_, goal_) : 0.0; };
 
     std::function<double(double h, double g)> phi_ = [](const double h, const double g) {
         return g + h;

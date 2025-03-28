@@ -26,6 +26,7 @@
 #include <cstdint>
 #include <functional>
 #include <iostream>
+#include <memory>  // NOLINT
 #include <vector>
 
 namespace gppc {
@@ -51,20 +52,30 @@ enum Direction : uint8_t {
     kSE = kS | kE,
     kSW = kS | kW,
     kStay = 0,
-    kAll = kSW | kNE
+    kAll = 0xFF
 };
 
-class Grid {
+constexpr std::array kDirections = {kN, kS, kE, kW, kNW, kNE, kSE, kSW};
+
+class Grid : public std::enable_shared_from_this<Grid> {
 public:
     Grid(const std::vector<bool>& map, size_t width, size_t height) noexcept;
+
+    Grid(const Grid& other) noexcept = default;
+
+    Grid(Grid&& other) noexcept = default;
+
+    Grid& operator=(const Grid& other) noexcept = default;
+
+    Grid& operator=(Grid&& other) noexcept = default;
+
+    virtual ~Grid() = default;
 
     [[nodiscard]] size_t Width() const noexcept;
 
     [[nodiscard]] size_t Height() const noexcept;
 
     [[nodiscard]] size_t Size() const noexcept;
-
-    [[nodiscard]] const std::array<Direction, 8>& Directions() const noexcept;
 
     [[nodiscard]] size_t Pack(size_t x, size_t y) const noexcept;
 
@@ -80,15 +91,18 @@ public:
 
     static std::pair<int, int> GetOffset(Direction direction) noexcept;
 
-    static double HCost(const Point& a, const Point& b) noexcept;
+    [[nodiscard]] virtual double HCost(const Point& a, const Point& b) const noexcept;
 
-    static double GCost(Direction direction) noexcept;
+    [[nodiscard]] virtual double GCost(Direction direction) const noexcept;
+
+    [[nodiscard]] virtual double GCost(const Point& a, const Point& b) const noexcept;
+
+    friend class Grid;
 
 private:
     std::reference_wrapper<const std::vector<bool>> map_;
     size_t width_;
     size_t height_;
-    std::array<Direction, 8> directions_ = {kN, kS, kE, kW, kNW, kNE, kSE, kSW};
 };
 }  // namespace gppc
 

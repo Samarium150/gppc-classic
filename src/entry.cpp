@@ -24,21 +24,49 @@
 #include "entry.h"
 
 #include "a_star.h"
-#include "baseline.h"
+#include "embedding.h"
 
-using namespace gppc;
+struct SearchData {
+    std::shared_ptr<gppc::algorithm::AStar> search = nullptr;
+    std::vector<std::shared_ptr<gppc::algorithm::GridEmbedding>> embeddings = {};
+};
 
 void PreprocessMap(const std::vector<bool> & /*bits*/, const int /*width*/, const int /*height*/,
                    const std::string & /*filename*/) {}
 
 void *PrepareForSearch(const std::vector<bool> &bits, const int width, const int height,
                        const std::string & /*filename*/) {
-    return new algorithm::AStar(bits, width, height);
+    const auto grid = std::make_shared<gppc::Grid>(bits, width, height);
+    auto dh5 = std::make_shared<gppc::algorithm::GridEmbedding>(
+        grid, 5, gppc::algorithm::GridEmbedding::Metric::kL1);
+    for (size_t i = 0; i < 5; ++i) {
+        dh5->AddDimension(gppc::algorithm::GridEmbedding::DimensionType::kDifferential,
+                          gppc::algorithm::GridEmbedding::PivotPlacement::kHeuristicError);
+    }
+    auto fm4dh = std::make_shared<gppc::algorithm::GridEmbedding>(
+        grid, 5, gppc::algorithm::GridEmbedding::Metric::kL1);
+    for (size_t i = 0; i < 4; ++i) {
+        fm4dh->AddDimension(gppc::algorithm::GridEmbedding::DimensionType::kFastMap,
+                            gppc::algorithm::GridEmbedding::PivotPlacement::kHeuristicError);
+    }
+    fm4dh->AddDimension(gppc::algorithm::GridEmbedding::DimensionType::kDifferential,
+                        gppc::algorithm::GridEmbedding::PivotPlacement::kHeuristicError);
+    return new SearchData{.search = std::make_shared<gppc::algorithm::AStar>(bits, width, height),
+                          .embeddings = std::vector{std::move(dh5), std::move(fm4dh)}};
 }
 
 // NOLINTNEXTLINE
 bool GetPath(void *data, xyLoc s, xyLoc g, std::vector<xyLoc> &path) {
-    auto *search = static_cast<algorithm::AStar *>(data);
+    const auto search_data = static_cast<SearchData *>(data);
+    const auto search = search_data->search;
+    const auto &embeddings = search_data->embeddings;
+    search->SetHeuristic([&embeddings](const auto &a, const auto &b) {
+        double h = 0;
+        for (const auto &embedding : embeddings) {
+            h = std::max(h, embedding->HCost(a, b));
+        }
+        return h;
+    });
     path.clear();
     if (const bool exists = (*search)({s.x, s.y}, {g.x, g.y}); !exists) {
         return true;

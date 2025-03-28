@@ -45,9 +45,7 @@ size_t Grid::Width() const noexcept { return width_; }
 
 size_t Grid::Height() const noexcept { return height_; }
 
-size_t Grid::Size() const noexcept { return width_ * height_; }
-
-const std::array<Direction, 8>& Grid::Directions() const noexcept { return directions_; }
+size_t Grid::Size() const noexcept { return map_.get().size(); }
 
 size_t Grid::Pack(const size_t x, const size_t y) const noexcept { return x + y * width_; }
 
@@ -99,13 +97,13 @@ std::pair<int, int> Grid::GetOffset(const Direction direction) noexcept {
     }
 }
 
-double Grid::HCost(const Point& a, const Point& b) noexcept {
+double Grid::HCost(const Point& a, const Point& b) const noexcept {
     const auto dx = std::abs(a.x - b.x);
     const auto dy = std::abs(a.y - b.y);
     return static_cast<double>(dx + dy) + (std::numbers::sqrt2 - 2.0) * std::min(dx, dy);
 }
 
-double Grid::GCost(const Direction direction) noexcept {
+double Grid::GCost(const Direction direction) const noexcept {
     switch (direction) {
         case kN:
         case kS:
@@ -120,6 +118,16 @@ double Grid::GCost(const Direction direction) noexcept {
         default:
             return 0.0;
     }
+}
+
+double Grid::GCost(const Point& a, const Point& b) const noexcept {
+    if (a == b) {
+        return 0.0;
+    }
+    if (a.x == b.x || a.y == b.y) {
+        return 1.0;
+    }
+    return std::numbers::sqrt2;
 }
 
 }  // namespace gppc
