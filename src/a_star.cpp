@@ -102,9 +102,24 @@ bool AStar::AddStart(const Point& point) noexcept {
     return true;
 }
 
+void AStar::GetSuccessors(const int x, const int y) noexcept {
+    for (const auto& direction : kDirections) {
+        const auto [dx, dy] = Grid::GetOffset(direction);
+        const auto xx = x + dx;
+        const auto yy = y + dy;
+        if (!grid_->Get(xx, yy)) {
+            continue;
+        }
+        if (dx != 0 && dy != 0 && (!grid_->Get(xx, y) || !grid_->Get(x, yy))) {
+            continue;
+        }
+        successors_.emplace_back(xx, yy);
+    }
+}
+
 bool AStar::operator()() noexcept {
     if (grid_ == nullptr) {
-        return false;
+        return true;
     }
     if (open_closed_list_.EmptyOpen()) {
         return true;
@@ -116,27 +131,18 @@ bool AStar::operator()() noexcept {
         for (auto id = goal_id; id != start_id; id = open_closed_list_.GetNode(id).parent_id) {
             path_.push_back(grid_->Unpack(id));
         }
-        if (start_ != goal_) {
-            path_.push_back(start_);
-            std::ranges::reverse(path_);
-        }
+        path_.push_back(start_);
+        std::ranges::reverse(path_);
         return true;
     }
     if (!open_closed_list_.Close(current.id)) {
         return false;
     }
     ++node_expanded_;
-    auto [x, y] = grid_->Unpack(current.id);
-    for (const auto& direction : kDirections) {
-        const auto [dx, dy] = Grid::GetOffset(direction);
-        const auto xx = x + dx;
-        const auto yy = y + dy;
-        if (!grid_->Get(xx, yy)) {
-            continue;
-        }
-        if (dx != 0 && dy != 0 && (!grid_->Get(xx, y) || !grid_->Get(x, yy))) {
-            continue;
-        }
+    const auto [x, y] = grid_->Unpack(current.id);
+    successors_.clear();
+    GetSuccessors(x, y);
+    for (const auto& [xx, yy] : successors_) {
         if (const auto successor_id = grid_->Pack(xx, yy);
             !open_closed_list_.InClosed(successor_id)) {
             if (const auto successor_g = current.g + grid_->GCost({x, y}, {xx, yy});

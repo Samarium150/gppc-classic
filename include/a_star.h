@@ -78,6 +78,8 @@ public:
                     const Point& goal) noexcept;
 
 private:
+    void GetSuccessors(int x, int y) noexcept;
+
     std::shared_ptr<Grid> grid_ = nullptr;
     size_t node_expanded_{};
     std::vector<Point> path_{};
@@ -85,6 +87,7 @@ private:
     Point goal_{};
     bool stop_after_goal_ = true;
     OpenClosedList<Node, std::greater<>> open_closed_list_{};
+    std::vector<Point> successors_{};
 
     std::function<double(const Point&, const Point&)> heuristic_ =
         [this](const Point&, const Point&) { return grid_ ? grid_->HCost(start_, goal_) : 0.0; };

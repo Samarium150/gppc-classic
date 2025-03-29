@@ -97,8 +97,6 @@ public:
 
     [[nodiscard]] virtual double GCost(const Point& a, const Point& b) const noexcept;
 
-    friend class Grid;
-
 private:
     std::reference_wrapper<const std::vector<bool>> map_;
     size_t width_;

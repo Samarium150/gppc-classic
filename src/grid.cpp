@@ -55,7 +55,7 @@ size_t Grid::Pack(const Point& point) const noexcept {
 }
 
 Point Grid::Unpack(const size_t index) const noexcept {
-    return {static_cast<uint16_t>(index % width_), static_cast<uint16_t>(index / width_)};
+    return {static_cast<int>(index % width_), static_cast<int>(index / width_)};
 }
 
 bool Grid::Get(const size_t index) const noexcept { return index < Size() && map_.get()[index]; }
