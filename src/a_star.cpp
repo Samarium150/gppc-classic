@@ -73,12 +73,13 @@ bool AStar::Init(const Point& start, const Point& goal) noexcept {
     path_.clear();
     node_expanded_ = 0;
     open_closed_list_.Reset(grid_->Size());
-    start_ = start;
+    start_id_ = grid_->Pack(start);
+    goal_id_ = grid_->Pack(goal);
     goal_ = goal;
-    const auto start_id = grid_->Pack(start_);
-    const auto h = heuristic_(start_, goal_);
+    const auto h = heuristic_(start, goal);
     const auto f = phi_(h, 0.0);
-    open_closed_list_.AddOpen(open_closed_list_.SetNode(start_id, {start_id, start_id, 0.0, h, f}));
+    open_closed_list_.AddOpen(
+        open_closed_list_.SetNode(start_id_, {start_id_, start_id_, 0.0, h, f}));
     return true;
 }
 
@@ -125,13 +126,11 @@ bool AStar::operator()() noexcept {
         return true;
     }
     const auto current = open_closed_list_.PopOpen();
-    if (stop_after_goal_ && current.id == grid_->Pack(goal_)) {
-        const auto start_id = grid_->Pack(start_);
-        const auto goal_id = grid_->Pack(goal_);
-        for (auto id = goal_id; id != start_id; id = open_closed_list_.GetNode(id).parent_id) {
+    if (stop_after_goal_ && current.id == goal_id_) {
+        for (auto id = goal_id_; id != start_id_; id = open_closed_list_.GetNode(id).parent_id) {
             path_.push_back(grid_->Unpack(id));
         }
-        path_.push_back(start_);
+        path_.push_back(grid_->Unpack(start_id_));
         std::ranges::reverse(path_);
         return true;
     }
@@ -139,15 +138,15 @@ bool AStar::operator()() noexcept {
         return false;
     }
     ++node_expanded_;
-    const auto [x, y] = grid_->Unpack(current.id);
+    const auto current_point = grid_->Unpack(current.id);
     successors_.clear();
-    GetSuccessors(x, y);
-    for (const auto& [xx, yy] : successors_) {
-        if (const auto successor_id = grid_->Pack(xx, yy);
+    GetSuccessors(current_point.x, current_point.y);
+    for (const auto& successor : successors_) {
+        if (const auto successor_id = grid_->Pack(successor);
             !open_closed_list_.InClosed(successor_id)) {
-            if (const auto successor_g = current.g + grid_->GCost({x, y}, {xx, yy});
+            if (const auto successor_g = current.g + grid_->GCost(current_point, successor);
                 successor_g < open_closed_list_.GetNode(successor_id).g) {
-                const auto successor_h = heuristic_({xx, yy}, goal_);
+                const auto successor_h = heuristic_(successor, goal_);
                 const auto successor_f = phi_(successor_h, successor_g);
                 open_closed_list_.AddOpen(open_closed_list_.SetNode(
                     successor_id,

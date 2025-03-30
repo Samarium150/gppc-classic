@@ -32,7 +32,7 @@ namespace gppc::algorithm {
 
 class AStar {
 public:
-    struct Node {
+    struct alignas(64) Node {
         size_t id = std::numeric_limits<size_t>::max();
         size_t parent_id = std::numeric_limits<size_t>::max();
         double g = std::numeric_limits<double>::max();
@@ -83,14 +83,15 @@ private:
     std::shared_ptr<Grid> grid_ = nullptr;
     size_t node_expanded_{};
     std::vector<Point> path_{};
-    Point start_{};
-    Point goal_{};
+    size_t start_id_ = std::numeric_limits<size_t>::max();
+    size_t goal_id_ = std::numeric_limits<size_t>::max();
+    Point goal_{-1, -1};
     bool stop_after_goal_ = true;
     OpenClosedList<Node, std::greater<>> open_closed_list_{};
     std::vector<Point> successors_{};
 
     std::function<double(const Point&, const Point&)> heuristic_ =
-        [this](const Point&, const Point&) { return grid_ ? grid_->HCost(start_, goal_) : 0.0; };
+        [this](const Point& a, const Point& b) { return grid_ ? grid_->HCost(a, b) : 0.0; };
 
     std::function<double(double h, double g)> phi_ = [](const double h, const double g) {
         return g + h;
