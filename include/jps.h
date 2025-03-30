@@ -61,7 +61,7 @@ public:
                     const Point& goal) noexcept;
 
 private:
-    struct Node {
+    struct alignas(64) Node {
         size_t id = std::numeric_limits<size_t>::max();
         std::pair<size_t, uint8_t> parent = {std::numeric_limits<size_t>::max(), kAll};
         double g = std::numeric_limits<double>::max();
@@ -71,7 +71,7 @@ private:
         bool operator>(const Node& other) const noexcept { return f > other.f; }
     };
 
-    struct Successor {
+    struct alignas(64) Successor {
         Point point;
         uint8_t direction;
         double cost;
@@ -90,14 +90,15 @@ private:
     std::vector<bool> jump_points_{};
     size_t node_expanded_{};
     std::vector<Point> path_{};
-    Point start_{};
-    Point goal_{};
+    size_t start_id_ = std::numeric_limits<size_t>::max();
+    size_t goal_id_ = std::numeric_limits<size_t>::max();
+    Point goal_{-1, -1};
     OpenClosedList<Node, std::greater<>> open_closed_list_{};
     std::vector<Successor> successors_{};
     size_t jump_limit_ = std::numeric_limits<size_t>::max();
 
     std::function<double(const Point&, const Point&)> heuristic_ =
-        [this](const Point&, const Point&) { return grid_ ? grid_->HCost(start_, goal_) : 0.0; };
+        [this](const Point& a, const Point& b) { return grid_ ? grid_->HCost(a, b) : 0.0; };
 
     std::function<double(double h, double g)> phi_ = [](const double h, const double g) {
         return g + h;

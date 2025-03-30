@@ -81,13 +81,13 @@ bool JPS::Init(const Point& start, const Point& goal) noexcept {
     path_.clear();
     node_expanded_ = 0;
     open_closed_list_.Reset(grid_->Size());
-    start_ = start;
+    start_id_ = grid_->Pack(start);
+    goal_id_ = grid_->Pack(goal);
     goal_ = goal;
-    const auto start_id = grid_->Pack(start_);
-    const auto h = heuristic_(start_, goal_);
+    const auto h = heuristic_(start, goal);
     const auto f = phi_(h, 0.0);
     open_closed_list_.AddOpen(
-        open_closed_list_.SetNode(start_id, {start_id, {start_id, kAll}, 0.0, h, f}));
+        open_closed_list_.SetNode(start_id_, {start_id_, {start_id_, kAll}, 0.0, h, f}));
     return true;
 }
 
@@ -108,16 +108,13 @@ bool JPS::operator()() noexcept {
         return true;
     }
     const auto current = open_closed_list_.PopOpen();
-    if (current.id == grid_->Pack(goal_)) {
-        const auto start_id = grid_->Pack(start_);
-        const auto goal_id = grid_->Pack(goal_);
+    if (current.id == goal_id_) {
         std::vector<Point> path;
-        for (auto id = goal_id; id != start_id; id = open_closed_list_.GetNode(id).parent.first) {
+        for (auto id = goal_id_; id != start_id_; id = open_closed_list_.GetNode(id).parent.first) {
             path.push_back(grid_->Unpack(id));
         }
-        path.push_back(start_);
+        path.push_back(grid_->Unpack(start_id_));
         std::ranges::reverse(path);
-        // path_ = std::move(path);
         Interpolate(path);
         return true;
     }
