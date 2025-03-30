@@ -22,6 +22,8 @@
 
 #include "jps.h"
 
+#include <algorithm>
+
 namespace gppc::algorithm {
 
 JPS::JPS(const std::vector<bool>& map, size_t width, size_t height) noexcept

@@ -23,7 +23,6 @@
 #include "a_star.h"
 
 #include <algorithm>
-#include <queue>
 
 namespace gppc::algorithm {
 
