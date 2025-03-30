@@ -22,6 +22,7 @@
 
 #include "embedding.h"
 
+#include <fstream>
 #include <random>
 
 namespace gppc::algorithm {
@@ -44,28 +45,11 @@ GridEmbedding::GridEmbedding(const std::shared_ptr<Grid>& grid, const size_t max
       max_dimensions_(max_dimensions),
       metric_(metric),
       embedding_(grid_->Size() * max_dimensions_, -1) {
-    s1.StopAfterGoal(false).SetHeuristic([](const Point&, const Point&) { return 0.0; });
-    s2.StopAfterGoal(false).SetHeuristic([](const Point&, const Point&) { return 0.0; });
+    s1.SetJumpLimit(0).StopAfterGoal(false).SetHeuristic(
+        [](const Point&, const Point&) { return 0.0; });
+    s2.SetJumpLimit(0).StopAfterGoal(false).SetHeuristic(
+        [](const Point&, const Point&) { return 0.0; });
     GetConnectedComponents();
-}
-
-void GridEmbedding::GetConnectedComponents() noexcept {
-    num_connected_components_ = 0;
-    connected_components_.resize(grid_->Size(), std::numeric_limits<uint8_t>::max());
-    for (size_t i = 0; i < grid_->Size(); ++i) {
-        if (!grid_->Get(i) || connected_components_[i] != std::numeric_limits<uint8_t>::max()) {
-            continue;
-        }
-        const auto point = grid_->Unpack(i);
-        s1(grid_, point, point);
-        for (auto& node : s1.GetNodes()) {
-            if (node.id != std::numeric_limits<size_t>::max()) {
-                connected_components_[node.id] = num_connected_components_;
-            }
-        }
-        ++num_connected_components_;
-    }
-    pivots_.resize(num_connected_components_);
 }
 
 bool GridEmbedding::AddDimension(const DimensionType type,
@@ -100,6 +84,116 @@ double GridEmbedding::HCost(const Point& a, const Point& b) const noexcept {
         }
     }
     return h;
+}
+
+std::ofstream& operator<<(std::ofstream& ofs, const GridEmbedding& embedding) noexcept {
+    ofs.write(reinterpret_cast<const char*>(&embedding.max_dimensions_),
+              sizeof(embedding.max_dimensions_))
+        .write(reinterpret_cast<const char*>(&embedding.current_dimensions_),
+               sizeof(embedding.current_dimensions_))
+        .write(reinterpret_cast<const char*>(&embedding.metric_), sizeof(embedding.metric_));
+    const auto embedding_size = embedding.embedding_.size();
+    ofs.write(reinterpret_cast<const char*>(&embedding_size), sizeof(embedding_size))
+        .write(reinterpret_cast<const char*>(embedding.embedding_.data()),
+               static_cast<std::streamsize>(embedding.embedding_.size() * sizeof(double)));
+    return ofs;
+}
+
+std::ifstream& operator>>(std::ifstream& ifs, GridEmbedding& embedding) noexcept {
+    ifs.read(reinterpret_cast<char*>(&embedding.max_dimensions_), sizeof(embedding.max_dimensions_))
+        .read(reinterpret_cast<char*>(&embedding.current_dimensions_),
+              sizeof(embedding.current_dimensions_))
+        .read(reinterpret_cast<char*>(&embedding.metric_), sizeof(embedding.metric_));
+    size_t embedding_size;
+    ifs.read(reinterpret_cast<char*>(&embedding_size), sizeof(embedding_size));
+    embedding.embedding_.resize(embedding_size, -1);
+    ifs.read(reinterpret_cast<char*>(embedding.embedding_.data()),
+             static_cast<std::streamsize>(embedding_size * sizeof(double)));
+    return ifs;
+}
+
+bool GridEmbedding::operator==(const GridEmbedding& other) const noexcept {
+    return max_dimensions_ == other.max_dimensions_ &&
+           current_dimensions_ == other.current_dimensions_ && metric_ == other.metric_ &&
+           embedding_ == other.embedding_;
+}
+
+void GridEmbedding::FloodFill(const Point& point) noexcept {
+    queue_.push(point);
+    while (!queue_.empty()) {
+        const auto [x, y] = queue_.front();
+        queue_.pop();
+        for (const auto& direction : kDirections) {
+            const auto [dx, dy] = Grid::GetOffset(direction);
+            const auto xx = x + dx;
+            const auto yy = y + dy;
+            const auto successor = Point{xx, yy};
+            const auto successor_id = grid_->Pack(xx, yy);
+            if (!grid_->Get(successor)) {
+                continue;
+            }
+            if (dx != 0 && dy != 0 && (!grid_->Get(xx, y) || !grid_->Get(x, yy))) {
+                continue;
+            }
+            if (connected_components_[successor_id] != MAX_NUM_COMPONENTS) {
+                continue;
+            }
+            connected_components_[successor_id] = num_connected_components_;
+            component_indices_[num_connected_components_].push_back(successor_id);
+            queue_.push(successor);
+        }
+    }
+}
+
+void GridEmbedding::GetConnectedComponents() noexcept {
+    num_connected_components_ = 0;
+    connected_components_.resize(grid_->Size(), MAX_NUM_COMPONENTS);
+    component_indices_.resize(MAX_NUM_COMPONENTS);
+    for (size_t id = 0; id < grid_->Size(); ++id) {
+        if (!grid_->Get(id) || connected_components_[id] != MAX_NUM_COMPONENTS) {
+            continue;
+        }
+        connected_components_[id] = num_connected_components_;
+        component_indices_[num_connected_components_].push_back(id);
+        FloodFill(grid_->Unpack(id));
+        ++num_connected_components_;
+    }
+    pivots_.resize(num_connected_components_);
+    component_indices_.shrink_to_fit();
+}
+
+Point GridEmbedding::GetRandomState(const uint8_t component) const noexcept {
+    const auto& indices = component_indices_[component];
+    thread_local std::mt19937 gen{std::random_device()()};
+    std::uniform_int_distribution<size_t> distribution(0, indices.size() - 1);
+    return grid_->Unpack(indices[distribution(gen)]);
+}
+
+Point GridEmbedding::GetFarthestState(const Point& point, JPS& search,
+                                      const std::shared_ptr<Grid>& grid) noexcept {
+    search.Init(grid, point, point);
+    Point farthest_point = point;
+    while (!search()) {
+        if (!search.EmptyOpen()) {
+            farthest_point = grid->Unpack(search.PeekOpen().id);
+        }
+    }
+    return farthest_point;
+}
+
+Point GridEmbedding::GetFarthestState(const std::vector<Point>& points, JPS& search,
+                                      const std::shared_ptr<Grid>& grid) noexcept {
+    search.Init(grid, points[0], points[0]);
+    for (size_t i = 1; i < points.size(); ++i) {
+        search.AddStart(points[i]);
+    }
+    Point farthest_point = points[0];
+    while (!search()) {
+        if (!search.EmptyOpen()) {
+            farthest_point = grid->Unpack(search.PeekOpen().id);
+        }
+    }
+    return farthest_point;
 }
 
 void GridEmbedding::SelectPivots(const PivotPlacement placement, const uint8_t component) noexcept {
@@ -155,12 +249,9 @@ void GridEmbedding::SelectPivots(const PivotPlacement placement, const uint8_t c
         case Metric::kLInf: {
             switch (placement) {
                 case PivotPlacement::kFarthest: {
-                    Point pivot;
-                    if (pivots_[component].empty()) {
-                        pivot = GetFarthestState(GetRandomState(component), s1, grid_);
-                    } else {
-                        pivot = GetFarthestState(pivots_[component], s1, grid_);
-                    }
+                    const Point pivot = pivots_[component].empty()
+                                            ? GetFarthestState(GetRandomState(component), s1, grid_)
+                                            : GetFarthestState(pivots_[component], s1, grid_);
                     pivots_[component].push_back(pivot);
                     GetFarthestState(pivot, s2, grid_);
                     break;
@@ -195,43 +286,6 @@ void GridEmbedding::Embed(const DimensionType type, const uint8_t component) noe
             }
         }
     }
-}
-
-Point GridEmbedding::GetRandomState(const uint8_t component) const noexcept {
-    while (true) {
-        thread_local std::mt19937 gen{std::random_device()()};
-        std::uniform_int_distribution<size_t> distribution(0, grid_->Size() - 1);
-        if (const auto id = distribution(gen); connected_components_[id] == component) {
-            return grid_->Unpack(id);
-        }
-    }
-}
-
-Point GridEmbedding::GetFarthestState(const Point& point, AStar& astar,
-                                      const std::shared_ptr<Grid>& grid) noexcept {
-    astar.Init(grid, point, point);
-    Point farthest_point = point;
-    while (!astar()) {
-        if (!astar.EmptyOpen()) {
-            farthest_point = grid->Unpack(astar.PeekOpen().id);
-        }
-    }
-    return farthest_point;
-}
-
-Point GridEmbedding::GetFarthestState(const std::vector<Point>& points, AStar& astar,
-                                      const std::shared_ptr<Grid>& grid) noexcept {
-    astar.Init(grid, points[0], points[0]);
-    for (size_t i = 1; i < points.size(); ++i) {
-        astar.AddStart(points[i]);
-    }
-    Point farthest_point = points[0];
-    while (!astar()) {
-        if (!astar.EmptyOpen()) {
-            farthest_point = grid->Unpack(astar.PeekOpen().id);
-        }
-    }
-    return farthest_point;
 }
 
 }  // namespace gppc::algorithm

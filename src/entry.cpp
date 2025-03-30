@@ -28,8 +28,10 @@
 
 struct SearchData {
     std::shared_ptr<gppc::algorithm::AStar> search = nullptr;
-    std::vector<std::shared_ptr<gppc::algorithm::GridEmbedding>> embeddings = {};
+    std::array<std::shared_ptr<gppc::algorithm::GridEmbedding>, 2> embeddings = {};
 };
+
+constexpr uint8_t kMaxDim = 5;
 
 void PreprocessMap(const std::vector<bool> & /*bits*/, const int /*width*/, const int /*height*/,
                    const std::string & /*filename*/) {}
@@ -38,21 +40,21 @@ void *PrepareForSearch(const std::vector<bool> &bits, const int width, const int
                        const std::string & /*filename*/) {
     const auto grid = std::make_shared<gppc::Grid>(bits, width, height);
     auto dh5 = std::make_shared<gppc::algorithm::GridEmbedding>(
-        grid, 5, gppc::algorithm::GridEmbedding::Metric::kL1);
-    for (size_t i = 0; i < 5; ++i) {
+        grid, kMaxDim, gppc::algorithm::GridEmbedding::Metric::kL1);
+    for (size_t i = 0; i < kMaxDim; ++i) {
         dh5->AddDimension(gppc::algorithm::GridEmbedding::DimensionType::kDifferential,
                           gppc::algorithm::GridEmbedding::PivotPlacement::kHeuristicError);
     }
     auto fm4dh = std::make_shared<gppc::algorithm::GridEmbedding>(
-        grid, 5, gppc::algorithm::GridEmbedding::Metric::kL1);
-    for (size_t i = 0; i < 4; ++i) {
+        grid, kMaxDim, gppc::algorithm::GridEmbedding::Metric::kL1);
+    for (size_t i = 0; i < kMaxDim - 1; ++i) {
         fm4dh->AddDimension(gppc::algorithm::GridEmbedding::DimensionType::kFastMap,
                             gppc::algorithm::GridEmbedding::PivotPlacement::kHeuristicError);
     }
     fm4dh->AddDimension(gppc::algorithm::GridEmbedding::DimensionType::kDifferential,
                         gppc::algorithm::GridEmbedding::PivotPlacement::kHeuristicError);
     return new SearchData{.search = std::make_shared<gppc::algorithm::AStar>(bits, width, height),
-                          .embeddings = std::vector{std::move(dh5), std::move(fm4dh)}};
+                          .embeddings = std::array{std::move(dh5), std::move(fm4dh)}};
 }
 
 // NOLINTNEXTLINE

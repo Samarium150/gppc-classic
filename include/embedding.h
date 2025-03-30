@@ -23,7 +23,7 @@
 #ifndef GPPC_GRID_EMBEDDING_H_
 #define GPPC_GRID_EMBEDDING_H_
 
-#include "a_star.h"
+#include "jps.h"
 
 namespace gppc::algorithm {
 
@@ -42,11 +42,13 @@ private:
 
 class GridEmbedding {
 public:
-    enum class Metric { kL1, kLInf };
+    enum class Metric : uint8_t { kL1, kLInf };
 
-    enum class DimensionType { kDifferential, kFastMap };
+    enum class DimensionType : uint8_t { kDifferential, kFastMap };
 
-    enum class PivotPlacement { kFarthest, kHeuristicError };
+    enum class PivotPlacement : uint8_t { kFarthest, kHeuristicError };
+
+    GridEmbedding() noexcept = default;
 
     GridEmbedding(const std::shared_ptr<Grid>& grid, size_t max_dimensions, Metric metric) noexcept;
 
@@ -54,25 +56,42 @@ public:
 
     [[nodiscard]] double HCost(const Point& a, const Point& b) const noexcept;
 
+    friend std::ofstream& operator<<(std::ofstream& ofs, const GridEmbedding& embedding) noexcept;
+
+    friend std::ifstream& operator>>(std::ifstream& ifs, GridEmbedding& embedding) noexcept;
+
+    bool operator==(const GridEmbedding& other) const noexcept;
+
 private:
+    void FloodFill(const Point& point) noexcept;
+
     void GetConnectedComponents() noexcept;
+
     [[nodiscard]] Point GetRandomState(uint8_t component) const noexcept;
-    static Point GetFarthestState(const Point& point, AStar& astar,
+
+    static Point GetFarthestState(const Point& point, JPS& search,
                                   const std::shared_ptr<Grid>& grid) noexcept;
-    static Point GetFarthestState(const std::vector<Point>& points, AStar& astar,
+
+    static Point GetFarthestState(const std::vector<Point>& points, JPS& search,
                                   const std::shared_ptr<Grid>& grid) noexcept;
+
     void SelectPivots(PivotPlacement placement, uint8_t component) noexcept;
+
     void Embed(DimensionType type, uint8_t component) noexcept;
-    std::shared_ptr<Grid> grid_;
-    std::shared_ptr<ResidualGrid> residual_grid_;
-    size_t max_dimensions_;
-    Metric metric_;
-    AStar s1{};
-    AStar s2{};
+
+    static constexpr auto MAX_NUM_COMPONENTS = std::numeric_limits<uint16_t>::max();
+    std::shared_ptr<Grid> grid_ = nullptr;
+    std::shared_ptr<ResidualGrid> residual_grid_ = nullptr;
+    size_t max_dimensions_{};
+    Metric metric_{};
+    JPS s1{};
+    JPS s2{};
     size_t current_dimensions_{};
     std::vector<double> embedding_{};
-    uint8_t num_connected_components_{};
-    std::vector<uint8_t> connected_components_{};
+    std::queue<Point> queue_;
+    uint16_t num_connected_components_{};
+    std::vector<uint16_t> connected_components_{};
+    std::vector<std::vector<size_t>> component_indices_{};
     std::vector<std::vector<Point>> pivots_{};
 };
 
