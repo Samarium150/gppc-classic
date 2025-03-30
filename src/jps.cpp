@@ -23,57 +23,32 @@
 #include "jps.h"
 
 #include <algorithm>
+#include <utility>
 
 namespace gppc::algorithm {
 
-JPS::JPS(const std::vector<bool>& map, size_t width, size_t height) noexcept
-    : grid_(std::make_shared<Grid>(map, width, height)) {
+JPS::JPS(const std::vector<bool>& map, const size_t width, const size_t height) noexcept
+    : HeuristicSearch(map, width, height) {
     PreProcess();
 }
 
-void JPS::PreProcess() noexcept {
-    if (!grid_) {
-        return;
-    }
-    jump_points_.resize(grid_->Size());
-    for (auto y = 0; std::cmp_less(y, grid_->Height()); ++y) {
-        for (auto x = 0; std::cmp_less(x, grid_->Width()); ++x) {
-            if (!grid_->Get(x, y)) {
-                if ((grid_->Get(x - 1, y)) && (grid_->Get(x, y + 1))) {
-                    SetJumpPoint(x - 1, y + 1);
-                }
-                if ((grid_->Get(x - 1, y)) && (grid_->Get(x, y - 1))) {
-                    SetJumpPoint(x - 1, y - 1);
-                }
-                if ((grid_->Get(x + 1, y)) && (grid_->Get(x, y - 1))) {
-                    SetJumpPoint(x + 1, y - 1);
-                }
-                if ((grid_->Get(x + 1, y)) && (grid_->Get(x, y + 1))) {
-                    SetJumpPoint(x + 1, y + 1);
-                }
-            }
-        }
-    }
-}
+JPS::JPS(const std::shared_ptr<Grid>& grid) noexcept : HeuristicSearch(grid) {}
 
-const std::vector<Point>& JPS::GetPath() const noexcept { return path_; }
-
-JPS& JPS::SetHeuristic(std::function<double(const Point&, const Point&)> heuristic) noexcept {
-    heuristic_ = std::move(heuristic);
+JPS& JPS::SetJumpLimit(const size_t limit) noexcept {
+    jump_limit_ = limit;
     return *this;
 }
 
-JPS& JPS::SetPhi(std::function<double(double, double)> phi) noexcept {
-    phi_ = std::move(phi);
-    return *this;
-}
-
-void JPS::Reset() noexcept {
-    path_.clear();
-    node_expanded_ = 0;
-    if (grid_) {
-        open_closed_list_.Reset(grid_->Size());
+bool JPS::AddStart(const Point& point) noexcept {
+    if (!grid_ || !grid_->Get(point)) {
+        return false;
     }
+    const auto start_id = grid_->Pack(point);
+    const auto h = grid_->HCost(point, goal_);
+    const auto f = phi_(h, 0.0);
+    open_closed_list_.AddOpen(
+        open_closed_list_.SetNode(start_id, {start_id, {start_id, kAll}, 0.0, h, f}));
+    return true;
 }
 
 bool JPS::Init(const Point& start, const Point& goal) noexcept {
@@ -147,22 +122,37 @@ bool JPS::operator()() noexcept {
 }
 
 bool JPS::operator()(const Point& start, const Point& goal) noexcept {
-    if (!Init(start, goal)) {
-        return false;
-    }
-    while (!operator()()) {
-    }
-    return !path_.empty();
+    return HeuristicSearch::operator()(start, goal);
 }
 
 bool JPS::operator()(const std::shared_ptr<Grid>& grid, const Point& start,
                      const Point& goal) noexcept {
-    if (!Init(grid, start, goal)) {
-        return false;
+    return HeuristicSearch::operator()(grid, start, goal);
+}
+
+void JPS::PreProcess() noexcept {
+    if (!grid_) {
+        return;
     }
-    while (!operator()()) {
+    jump_points_.resize(grid_->Size());
+    for (auto y = 0; std::cmp_less(y, grid_->Height()); ++y) {
+        for (auto x = 0; std::cmp_less(x, grid_->Width()); ++x) {
+            if (!grid_->Get(x, y)) {
+                if ((grid_->Get(x - 1, y)) && (grid_->Get(x, y + 1))) {
+                    SetJumpPoint(x - 1, y + 1);
+                }
+                if ((grid_->Get(x - 1, y)) && (grid_->Get(x, y - 1))) {
+                    SetJumpPoint(x - 1, y - 1);
+                }
+                if ((grid_->Get(x + 1, y)) && (grid_->Get(x, y - 1))) {
+                    SetJumpPoint(x + 1, y - 1);
+                }
+                if ((grid_->Get(x + 1, y)) && (grid_->Get(x, y + 1))) {
+                    SetJumpPoint(x + 1, y + 1);
+                }
+            }
+        }
     }
-    return !path_.empty();
 }
 
 void JPS::SetJumpPoint(const int x, const int y) noexcept {
@@ -173,11 +163,6 @@ void JPS::SetJumpPoint(const int x, const int y) noexcept {
 
 bool JPS::IsJumpPoint(const int x, const int y) const noexcept {
     return jump_points_[grid_->Pack(x, y)];
-}
-
-JPS& JPS::SetJumpLimit(const size_t limit) noexcept {
-    jump_limit_ = limit;
-    return *this;
 }
 
 void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // NOLINT

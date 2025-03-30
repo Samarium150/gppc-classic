@@ -26,43 +26,20 @@
 
 namespace gppc::algorithm {
 
-AStar::AStar(const std::vector<bool>& map, size_t width, size_t height) noexcept
-    : grid_(std::make_shared<Grid>(map, width, height)) {}
+AStar::AStar(const std::vector<bool>& map, const size_t width, const size_t height) noexcept
+    : HeuristicSearch(map, width, height) {}
 
-const std::vector<Point>& AStar::GetPath() const noexcept { return path_; }
+AStar::AStar(const std::shared_ptr<Grid>& grid) noexcept : HeuristicSearch(grid) {}
 
-size_t AStar::GetNodeExpanded() const noexcept { return node_expanded_; }
-
-const std::vector<AStar::Node>& AStar::GetNodes() const noexcept {
-    return open_closed_list_.GetNodes();
-}
-
-AStar::Node AStar::PeekOpen() const noexcept { return open_closed_list_.PeekOpen(); }
-
-bool AStar::EmptyOpen() const noexcept { return open_closed_list_.EmptyOpen(); }
-
-AStar& AStar::SetHeuristic(
-    std::function<double(const Point& s1, const Point& s2)> heuristic) noexcept {
-    heuristic_ = std::move(heuristic);
-    return *this;
-}
-
-AStar& AStar::SetPhi(std::function<double(double h, double g)> phi) noexcept {
-    phi_ = std::move(phi);
-    return *this;
-}
-
-AStar& AStar::StopAfterGoal(const bool stop) noexcept {
-    stop_after_goal_ = stop;
-    return *this;
-}
-
-void AStar::Reset() noexcept {
-    path_.clear();
-    node_expanded_ = 0;
-    if (grid_) {
-        open_closed_list_.Reset(grid_->Size());
+bool AStar::AddStart(const Point& point) noexcept {
+    if (!grid_ || !grid_->Get(point)) {
+        return false;
     }
+    const auto start_id = grid_->Pack(point);
+    const auto h = grid_->HCost(point, goal_);
+    const auto f = phi_(h, 0.0);
+    open_closed_list_.AddOpen(open_closed_list_.SetNode(start_id, {start_id, start_id, 0.0, h, f}));
+    return true;
 }
 
 bool AStar::Init(const Point& start, const Point& goal) noexcept {
@@ -84,37 +61,7 @@ bool AStar::Init(const Point& start, const Point& goal) noexcept {
 
 bool AStar::Init(const std::shared_ptr<Grid>& grid, const Point& start,
                  const Point& goal) noexcept {
-    if (!grid->Get(start) || !grid->Get(goal)) {
-        return false;
-    }
-    grid_ = grid;
-    return Init(start, goal);
-}
-
-bool AStar::AddStart(const Point& point) noexcept {
-    if (!grid_ || !grid_->Get(point)) {
-        return false;
-    }
-    const auto start_id = grid_->Pack(point);
-    const auto h = grid_->HCost(point, goal_);
-    const auto f = phi_(h, 0.0);
-    open_closed_list_.AddOpen(open_closed_list_.SetNode(start_id, {start_id, start_id, 0.0, h, f}));
-    return true;
-}
-
-void AStar::GetSuccessors(const int x, const int y) noexcept {
-    for (const auto& direction : kDirections) {
-        const auto [dx, dy] = Grid::GetOffset(direction);
-        const auto xx = x + dx;
-        const auto yy = y + dy;
-        if (!grid_->Get(xx, yy)) {
-            continue;
-        }
-        if (dx != 0 && dy != 0 && (!grid_->Get(xx, y) || !grid_->Get(x, yy))) {
-            continue;
-        }
-        successors_.emplace_back(xx, yy);
-    }
+    return HeuristicSearch::Init(grid, start, goal);
 }
 
 bool AStar::operator()() noexcept {
@@ -157,22 +104,27 @@ bool AStar::operator()() noexcept {
 }
 
 bool AStar::operator()(const Point& start, const Point& goal) noexcept {
-    if (!Init(start, goal)) {
-        return false;
-    }
-    while (!operator()()) {
-    }
-    return !path_.empty();
+    return HeuristicSearch::operator()(start, goal);
 }
 
 bool AStar::operator()(const std::shared_ptr<Grid>& grid, const Point& start,
                        const Point& goal) noexcept {
-    if (!Init(grid, start, goal)) {
-        return false;
+    return HeuristicSearch::operator()(grid, start, goal);
+}
+
+void AStar::GetSuccessors(const int x, const int y) noexcept {
+    for (const auto& direction : kDirections) {
+        const auto [dx, dy] = Grid::GetOffset(direction);
+        const auto xx = x + dx;
+        const auto yy = y + dy;
+        if (!grid_->Get(xx, yy)) {
+            continue;
+        }
+        if (dx != 0 && dy != 0 && (!grid_->Get(xx, y) || !grid_->Get(x, yy))) {
+            continue;
+        }
+        successors_.emplace_back(xx, yy);
     }
-    while (!operator()()) {
-    }
-    return !path_.empty();
 }
 
 }  // namespace gppc::algorithm

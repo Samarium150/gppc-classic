@@ -23,79 +23,50 @@
 #ifndef GPPC_A_STAR_H_
 #define GPPC_A_STAR_H_
 
-#include <limits>
-
 #include "grid.h"
 #include "open_closed_list.h"
+#include "search.h"
 
 namespace gppc::algorithm {
 
-class AStar {
+struct alignas(64) AstarNode {
+    size_t id = std::numeric_limits<size_t>::max();
+    size_t parent_id = std::numeric_limits<size_t>::max();
+    double g = std::numeric_limits<double>::max();
+    double h = std::numeric_limits<double>::max();
+    double f = std::numeric_limits<double>::max();
+
+    bool operator>(const AstarNode& other) const noexcept { return f > other.f; }
+};
+
+class AStar final : public HeuristicSearch<AstarNode, std::greater<>> {
 public:
-    struct alignas(64) Node {
-        size_t id = std::numeric_limits<size_t>::max();
-        size_t parent_id = std::numeric_limits<size_t>::max();
-        double g = std::numeric_limits<double>::max();
-        double h = std::numeric_limits<double>::max();
-        double f = std::numeric_limits<double>::max();
-
-        bool operator>(const Node& other) const noexcept { return f > other.f; }
-    };
-
-    AStar() noexcept = default;
+    AStar() = default;
 
     AStar(const std::vector<bool>& map, size_t width, size_t height) noexcept;
 
-    [[nodiscard]] const std::vector<Point>& GetPath() const noexcept;
+    explicit AStar(const std::shared_ptr<Grid>& grid) noexcept;
 
-    [[nodiscard]] size_t GetNodeExpanded() const noexcept;
-
-    [[nodiscard]] const std::vector<Node>& GetNodes() const noexcept;
-
-    [[nodiscard]] Node PeekOpen() const noexcept;
-
-    [[nodiscard]] bool EmptyOpen() const noexcept;
-
-    AStar& SetHeuristic(std::function<double(const Point& s1, const Point& s2)> heuristic) noexcept;
-
-    AStar& SetPhi(std::function<double(double h, double g)> phi) noexcept;
-
-    AStar& StopAfterGoal(bool stop) noexcept;
-
-    void Reset() noexcept;
-
-    bool Init(const Point& start, const Point& goal) noexcept;
-
-    bool Init(const std::shared_ptr<Grid>& grid, const Point& start, const Point& goal) noexcept;
+    ~AStar() noexcept override = default;
 
     bool AddStart(const Point& point) noexcept;
 
-    bool operator()() noexcept;
+    bool Init(const Point& start, const Point& goal) noexcept override;
 
-    bool operator()(const Point& start, const Point& goal) noexcept;
+    bool Init(const std::shared_ptr<Grid>& grid, const Point& start,
+              const Point& goal) noexcept override;
+
+    bool operator()() noexcept override;
+
+    bool operator()(const Point& start, const Point& goal) noexcept override;
 
     bool operator()(const std::shared_ptr<Grid>& grid, const Point& start,
-                    const Point& goal) noexcept;
+                    const Point& goal) noexcept override;
 
 private:
     void GetSuccessors(int x, int y) noexcept;
 
-    std::shared_ptr<Grid> grid_ = nullptr;
-    size_t node_expanded_{};
-    std::vector<Point> path_{};
-    size_t start_id_ = std::numeric_limits<size_t>::max();
-    size_t goal_id_ = std::numeric_limits<size_t>::max();
-    Point goal_{-1, -1};
-    bool stop_after_goal_ = true;
-    OpenClosedList<Node, std::greater<>> open_closed_list_{};
     std::vector<Point> successors_{};
-
-    std::function<double(const Point&, const Point&)> heuristic_ =
-        [this](const Point& a, const Point& b) { return grid_ ? grid_->HCost(a, b) : 0.0; };
-
-    std::function<double(double, double)> phi_ = [](const double h, const double g) {
-        return g + h;
-    };
 };
 
 }  // namespace gppc::algorithm
