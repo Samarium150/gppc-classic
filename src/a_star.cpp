@@ -60,13 +60,13 @@ AStar& AStar::StopAfterGoal(const bool stop) noexcept {
 void AStar::Reset() noexcept {
     path_.clear();
     node_expanded_ = 0;
-    if (grid_ != nullptr) {
+    if (grid_) {
         open_closed_list_.Reset(grid_->Size());
     }
 }
 
 bool AStar::Init(const Point& start, const Point& goal) noexcept {
-    if (grid_ == nullptr) {
+    if (!grid_) {
         return false;
     }
     path_.clear();
@@ -92,7 +92,7 @@ bool AStar::Init(const std::shared_ptr<Grid>& grid, const Point& start,
 }
 
 bool AStar::AddStart(const Point& point) noexcept {
-    if (grid_ == nullptr || !grid_->Get(point)) {
+    if (!grid_ || !grid_->Get(point)) {
         return false;
     }
     const auto start_id = grid_->Pack(point);
@@ -118,7 +118,7 @@ void AStar::GetSuccessors(const int x, const int y) noexcept {
 }
 
 bool AStar::operator()() noexcept {
-    if (grid_ == nullptr) {
+    if (!grid_) {
         return true;
     }
     if (open_closed_list_.EmptyOpen()) {

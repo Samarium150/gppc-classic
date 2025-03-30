@@ -93,7 +93,7 @@ private:
     std::function<double(const Point&, const Point&)> heuristic_ =
         [this](const Point& a, const Point& b) { return grid_ ? grid_->HCost(a, b) : 0.0; };
 
-    std::function<double(double h, double g)> phi_ = [](const double h, const double g) {
+    std::function<double(double, double)> phi_ = [](const double h, const double g) {
         return g + h;
     };
 };

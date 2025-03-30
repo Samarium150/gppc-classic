@@ -55,7 +55,7 @@ enum Direction : uint8_t {
     kAll = 0xFF
 };
 
-constexpr std::array kDirections = {kN, kS, kE, kW, kNW, kNE, kSE, kSW};
+[[maybe_unused]] constexpr std::array kDirections = {kN, kS, kE, kW, kNW, kNE, kSE, kSW};
 
 class Grid : public std::enable_shared_from_this<Grid> {
 public:
