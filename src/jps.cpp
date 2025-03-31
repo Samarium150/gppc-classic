@@ -40,7 +40,7 @@ JPS::JPS(const std::shared_ptr<Grid>& grid) noexcept
     PreProcess();
 }
 
-JPS& JPS::SetJumpLimit(const size_t limit) noexcept {
+JPS& JPS::SetJumpLimit(const unsigned limit) noexcept {
     jump_limit_ = limit;
     return *this;
 }
@@ -137,16 +137,16 @@ void JPS::PreProcess() noexcept {
     for (auto y = 0; y < height_; ++y) {
         for (auto x = 0; x < width_; ++x) {
             if (!grid_->Get(x, y)) {
-                if ((grid_->Get(x - 1, y)) && (grid_->Get(x, y + 1))) {
+                if (grid_->Get(x - 1, y) && grid_->Get(x, y + 1)) {
                     SetJumpPoint(x - 1, y + 1);
                 }
-                if ((grid_->Get(x - 1, y)) && (grid_->Get(x, y - 1))) {
+                if (grid_->Get(x - 1, y) && grid_->Get(x, y - 1)) {
                     SetJumpPoint(x - 1, y - 1);
                 }
-                if ((grid_->Get(x + 1, y)) && (grid_->Get(x, y - 1))) {
+                if (grid_->Get(x + 1, y) && grid_->Get(x, y - 1)) {
                     SetJumpPoint(x + 1, y - 1);
                 }
-                if ((grid_->Get(x + 1, y)) && (grid_->Get(x, y + 1))) {
+                if (grid_->Get(x + 1, y) && grid_->Get(x, y + 1)) {
                     SetJumpPoint(x + 1, y + 1);
                 }
             }
@@ -164,140 +164,150 @@ bool JPS::IsJumpPoint(const int x, const int y) const noexcept {
     return jump_points_[grid_->Pack(x, y)];
 }
 
-void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // NOLINT
+void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,
                         const double current_cost) noexcept {
-    if (x == goal_.x && y == goal_.y) {
-        successors_.emplace_back(x, y, parent_dir, current_cost);
-        return;
-    }
-    bool n = false, s = false, w = false, e = false;
-    if (parent_dir & kN) {
-        if (y >= 0 && grid_->Get(x, y - 1)) {
-            uint8_t next_dir = 0;
-            if (IsJumpPoint(x, y - 1)) {
-                if (x >= 0 && !grid_->Get(x - 1, y) && grid_->Get(x - 1, y - 1)) {
-                    next_dir |= kNW;
-                }
-                if (x < width_ && !grid_->Get(x + 1, y) && grid_->Get(x + 1, y - 1)) {
-                    next_dir |= kNE;
-                }
-            }
-            const auto edge_cost = grid_->GCost(kN);
-            if (next_dir) {
-                successors_.emplace_back(x, y - 1, next_dir, current_cost + edge_cost);
-            } else if (current_cost >= jump_limit_) {
-                successors_.emplace_back(x, y - 1, kN, current_cost + edge_cost);
-            } else {
-                GetSuccessors(x, y - 1, kN, current_cost + edge_cost);
-            }
-            n = true;
+    temp_successors_.emplace(x, y, parent_dir, current_cost);
+    while (!temp_successors_.empty()) {
+        const auto [xx, yy, dir, cost] = temp_successors_.top();
+        temp_successors_.pop();
+        if (xx == goal_.x && yy == goal_.y) {
+            successors_.emplace_back(xx, yy, dir, cost);
+            auto stack = std::stack<Successor>();
+            temp_successors_.swap(stack);
+            return;
         }
-    }
-    if (parent_dir & kS) {
-        if (y < height_ && grid_->Get(x, y + 1)) {
-            uint8_t next_dir = 0;
-            if (IsJumpPoint(x, y + 1)) {
-                if (x >= 0 && !grid_->Get(x - 1, y) && grid_->Get(x - 1, y + 1)) {
-                    next_dir |= kSW;
+        bool n = false;
+        bool s = false;
+        bool w = false;
+        bool e = false;
+        if (dir & kN) {
+            if (yy >= 0 && grid_->Get(xx, yy - 1)) {
+                uint8_t next_dir = 0;
+                if (IsJumpPoint(xx, yy - 1)) {
+                    if (xx >= 0 && !grid_->Get(xx - 1, yy) && grid_->Get(xx - 1, yy - 1)) {
+                        next_dir |= kNW;
+                    }
+                    if (xx < width_ && !grid_->Get(xx + 1, yy) && grid_->Get(xx + 1, yy - 1)) {
+                        next_dir |= kNE;
+                    }
                 }
-                if (x < width_ && !grid_->Get(x + 1, y) && grid_->Get(x + 1, y + 1)) {
-                    next_dir |= kSE;
-                }
-            }
-            const auto edge_cost = grid_->GCost(kS);
-            if (next_dir)
-                successors_.emplace_back(x, y + 1, next_dir, current_cost + edge_cost);
-            else {
-                if (current_cost >= jump_limit_) {
-                    successors_.emplace_back(x, y + 1, kS, current_cost + edge_cost);
+                const auto edge_cost = grid_->GCost(kN);
+                if (next_dir) {
+                    successors_.emplace_back(xx, yy - 1, next_dir, cost + edge_cost);
+                } else if (cost >= jump_limit_) {
+                    successors_.emplace_back(xx, yy - 1, kN, cost + edge_cost);
                 } else {
-                    GetSuccessors(x, y + 1, kS, current_cost + edge_cost);
+                    temp_successors_.emplace(xx, yy - 1, kN, cost + edge_cost);
+                }
+                n = true;
+            }
+        }
+        if (dir & kS) {
+            if (yy < height_ && grid_->Get(xx, yy + 1)) {
+                uint8_t next_dir = 0;
+                if (IsJumpPoint(xx, yy + 1)) {
+                    if (xx >= 0 && !grid_->Get(xx - 1, yy) && grid_->Get(xx - 1, yy + 1)) {
+                        next_dir |= kSW;
+                    }
+                    if (xx < width_ && !grid_->Get(xx + 1, yy) && grid_->Get(xx + 1, yy + 1)) {
+                        next_dir |= kSE;
+                    }
+                }
+                const auto edge_cost = grid_->GCost(kS);
+                if (next_dir) {
+                    successors_.emplace_back(xx, yy + 1, next_dir, cost + edge_cost);
+                } else {
+                    if (cost >= jump_limit_) {
+                        successors_.emplace_back(xx, yy + 1, kS, cost + edge_cost);
+                    } else {
+                        temp_successors_.emplace(xx, yy + 1, kS, cost + edge_cost);
+                    }
+                }
+                s = true;
+            }
+        }
+        if (dir & kW) {
+            if (xx >= 0 && grid_->Get(xx - 1, yy)) {
+                uint8_t next_dir = 0;
+                if (IsJumpPoint(xx - 1, yy)) {
+                    if (yy >= 0 && !grid_->Get(xx, yy - 1) && grid_->Get(xx - 1, yy - 1)) {
+                        next_dir |= kNW;
+                    }
+                    if (yy < height_ && !grid_->Get(xx, yy + 1) && grid_->Get(xx - 1, yy + 1)) {
+                        next_dir |= kSW;
+                    }
+                }
+                const auto edge_cost = grid_->GCost(kW);
+                if (next_dir) {
+                    successors_.emplace_back(xx - 1, yy, next_dir, cost + edge_cost);
+                } else if (cost >= jump_limit_) {
+                    successors_.emplace_back(xx - 1, yy, kW, cost + edge_cost);
+                } else {
+                    temp_successors_.emplace(xx - 1, yy, kW, cost + edge_cost);
+                }
+                e = true;
+            }
+        }
+        if (dir & kE) {
+            if (xx < width_ && grid_->Get(xx + 1, yy)) {
+                uint8_t next_dir = 0;
+                if (IsJumpPoint(xx + 1, yy)) {
+                    if (yy >= 0 && !grid_->Get(xx, yy - 1) && grid_->Get(xx + 1, yy - 1)) {
+                        next_dir |= kNE;
+                    }
+                    if (yy < height_ && !grid_->Get(xx, yy + 1) && grid_->Get(xx + 1, yy + 1)) {
+                        next_dir |= kSE;
+                    }
+                }
+                const auto edge_cost = grid_->GCost(kE);
+                if (next_dir) {
+                    successors_.emplace_back(xx + 1, yy, next_dir, cost + edge_cost);
+                } else if (cost >= jump_limit_) {
+                    successors_.emplace_back(xx + 1, yy, kE, cost + edge_cost);
+                } else {
+                    temp_successors_.emplace(xx + 1, yy, kE, cost + edge_cost);
+                }
+                w = true;
+            }
+        }
+        if (dir & kNW) {
+            if (xx >= 0 && yy >= 0 && grid_->Get(xx - 1, yy - 1) && n && e) {
+                const auto edge_cost = grid_->GCost(kNW);
+                if (cost >= jump_limit_) {
+                    successors_.emplace_back(xx - 1, yy - 1, kNW, cost + edge_cost);
+                } else {
+                    temp_successors_.emplace(xx - 1, yy - 1, kNW, cost + edge_cost);
                 }
             }
-            s = true;
         }
-    }
-    if (parent_dir & kW) {
-        if (x >= 0 && grid_->Get(x - 1, y)) {
-            uint8_t next_dir = 0;
-            if (IsJumpPoint(x - 1, y)) {
-                if (y >= 0 && !grid_->Get(x, y - 1) && grid_->Get(x - 1, y - 1)) {
-                    next_dir |= kNW;
-                }
-                if (y < height_ && !grid_->Get(x, y + 1) && grid_->Get(x - 1, y + 1)) {
-                    next_dir |= kSW;
+        if (dir & kNE) {
+            if (xx < width_ && yy >= 0 && grid_->Get(xx + 1, yy - 1) && n && w) {
+                const auto edge_cost = grid_->GCost(kNE);
+                if (cost >= jump_limit_) {
+                    successors_.emplace_back(xx + 1, yy - 1, kNE, cost + edge_cost);
+                } else {
+                    temp_successors_.emplace(xx + 1, yy - 1, kNE, cost + edge_cost);
                 }
             }
-            const auto edge_cost = grid_->GCost(kW);
-            if (next_dir) {
-                successors_.emplace_back(x - 1, y, next_dir, current_cost + edge_cost);
-            } else if (current_cost >= jump_limit_) {
-                successors_.emplace_back(x - 1, y, kW, current_cost + edge_cost);
-            } else {
-                GetSuccessors(x - 1, y, kW, current_cost + edge_cost);
-            }
-            e = true;
         }
-    }
-    if (parent_dir & kE) {
-        if (x < width_ && grid_->Get(x + 1, y)) {
-            uint8_t next_dir = 0;
-            if (IsJumpPoint(x + 1, y)) {
-                if (y >= 0 && !grid_->Get(x, y - 1) && grid_->Get(x + 1, y - 1)) {
-                    next_dir |= kNE;
-                }
-                if (y < height_ && !grid_->Get(x, y + 1) && grid_->Get(x + 1, y + 1)) {
-                    next_dir |= kSE;
+        if (dir & kSW) {
+            if (xx >= 0 && yy < height_ && grid_->Get(xx - 1, yy + 1) && s && e) {
+                const auto edge_cost = grid_->GCost(kSW);
+                if (cost >= jump_limit_) {
+                    successors_.emplace_back(xx - 1, yy + 1, kSW, cost + edge_cost);
+                } else {
+                    temp_successors_.emplace(xx - 1, yy + 1, kSW, cost + edge_cost);
                 }
             }
-            const auto edge_cost = grid_->GCost(kE);
-            if (next_dir) {
-                successors_.emplace_back(x + 1, y, next_dir, current_cost + edge_cost);
-            } else if (current_cost >= jump_limit_) {
-                successors_.emplace_back(x + 1, y, kE, current_cost + edge_cost);
-            } else {
-                GetSuccessors(x + 1, y, kE, current_cost + edge_cost);
-            }
-            w = true;
         }
-    }
-    if (parent_dir & kNW) {
-        if (x >= 0 && y >= 0 && grid_->Get(x - 1, y - 1) && n && e) {
-            const auto edge_cost = grid_->GCost(kNW);
-            if (current_cost >= jump_limit_) {
-                successors_.emplace_back(x - 1, y - 1, kNW, current_cost + edge_cost);
-            } else {
-                GetSuccessors(x - 1, y - 1, kNW, current_cost + edge_cost);
-            }
-        }
-    }
-    if (parent_dir & kNE) {
-        if (x < width_ && y >= 0 && grid_->Get(x + 1, y - 1) && n && w) {
-            const auto edge_cost = grid_->GCost(kNE);
-            if (current_cost >= jump_limit_) {
-                successors_.emplace_back(x + 1, y - 1, kNE, current_cost + edge_cost);
-            } else {
-                GetSuccessors(x + 1, y - 1, kNE, current_cost + edge_cost);
-            }
-        }
-    }
-    if (parent_dir & kSW) {
-        if (x >= 0 && y < height_ && grid_->Get(x - 1, y + 1) && s && e) {
-            const auto edge_cost = grid_->GCost(kSW);
-            if (current_cost >= jump_limit_) {
-                successors_.emplace_back(x - 1, y + 1, kSW, current_cost + edge_cost);
-            } else {
-                GetSuccessors(x - 1, y + 1, kSW, current_cost + edge_cost);
-            }
-        }
-    }
-    if (parent_dir & kSE) {
-        if (x < width_ && y < height_ && grid_->Get(x + 1, y + 1) && s && w) {
-            const auto edge_cost = grid_->GCost(kSE);
-            if (current_cost >= jump_limit_) {
-                successors_.emplace_back(x + 1, y + 1, kSE, current_cost + edge_cost);
-            } else {
-                GetSuccessors(x + 1, y + 1, kSE, current_cost + edge_cost);
+        if (dir & kSE) {
+            if (xx < width_ && yy < height_ && grid_->Get(xx + 1, yy + 1) && s && w) {
+                const auto edge_cost = grid_->GCost(kSE);
+                if (cost >= jump_limit_) {
+                    successors_.emplace_back(xx + 1, yy + 1, kSE, cost + edge_cost);
+                } else {
+                    temp_successors_.emplace(xx + 1, yy + 1, kSE, cost + edge_cost);
+                }
             }
         }
     }

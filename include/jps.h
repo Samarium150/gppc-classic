@@ -23,6 +23,8 @@
 #ifndef GPPC_JPS_H_
 #define GPPC_JPS_H_
 
+#include <stack>
+
 #include "grid.h"
 #include "open_closed_list.h"
 #include "search.h"
@@ -48,7 +50,7 @@ public:
 
     ~JPS() noexcept override = default;
 
-    JPS& SetJumpLimit(size_t limit) noexcept;
+    JPS& SetJumpLimit(unsigned limit) noexcept;
 
     bool Init(const Point& start, const Point& goal) noexcept override;
 
@@ -84,9 +86,10 @@ private:
 
     int width_{};
     int height_{};
-    size_t jump_limit_ = std::numeric_limits<size_t>::max();
+    unsigned jump_limit_ = std::numeric_limits<unsigned>::max();
     std::vector<bool> jump_points_{};
     std::vector<Successor> successors_{};
+    std::stack<Successor> temp_successors_{};
 };
 
 }  // namespace gppc::algorithm
