@@ -50,10 +50,8 @@ bool JPS::AddStart(const Point& point) noexcept {
         return false;
     }
     const auto start_id = grid_->Pack(point);
-    const auto h = grid_->HCost(point, goal_);
-    const auto f = phi_(h, 0.0);
-    open_closed_list_.AddOpen(
-        open_closed_list_.SetNode(start_id, {start_id, {start_id, kAll}, 0.0, h, f}));
+    open_closed_list_.AddOpen(open_closed_list_.SetNode(
+        start_id, {start_id, {start_id, kAll}, 0.0, phi_(heuristic_(point, goal_), 0.0)}));
     return true;
 }
 
@@ -67,10 +65,8 @@ bool JPS::Init(const Point& start, const Point& goal) noexcept {
     start_id_ = grid_->Pack(start);
     goal_id_ = grid_->Pack(goal);
     goal_ = goal;
-    const auto h = heuristic_(start, goal);
-    const auto f = phi_(h, 0.0);
-    open_closed_list_.AddOpen(
-        open_closed_list_.SetNode(start_id_, {start_id_, {start_id_, kAll}, 0.0, h, f}));
+    open_closed_list_.AddOpen(open_closed_list_.SetNode(
+        start_id_, {start_id_, {start_id_, kAll}, 0.0, phi_(heuristic_(start, goal), 0.0)}));
     return true;
 }
 
@@ -108,19 +104,16 @@ bool JPS::operator()() noexcept {
     const auto [x, y] = grid_->Unpack(current.id);
     successors_.clear();
     GetSuccessors(x, y, current.parent.second);
-    for (const auto& [successor, direction, cost] : successors_) {
-        if (const auto successor_id = grid_->Pack(successor);
+    for (const auto& [xx, yy, direction, cost] : successors_) {
+        if (const auto successor_id = grid_->Pack(xx, yy);
             !open_closed_list_.InClosed(successor_id)) {
             if (const auto successor_g = current.g + cost;
                 successor_g < open_closed_list_.GetNode(successor_id).g) {
-                const auto successor_h = heuristic_(successor, goal_);
-                const auto successor_f = phi_(successor_h, successor_g);
-                open_closed_list_.AddOpen(
-                    open_closed_list_.SetNode(successor_id, {successor_id,
-                                                             {current.id, direction},
-                                                             successor_g,
-                                                             successor_h,
-                                                             successor_f}));
+                open_closed_list_.AddOpen(open_closed_list_.SetNode(
+                    successor_id, {successor_id,
+                                   {current.id, direction},
+                                   successor_g,
+                                   phi_(heuristic_({xx, yy}, goal_), successor_g)}));
             }
         }
     }
@@ -174,7 +167,7 @@ bool JPS::IsJumpPoint(const int x, const int y) const noexcept {
 void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // NOLINT
                         const double current_cost) noexcept {
     if (x == goal_.x && y == goal_.y) {
-        successors_.emplace_back(Point{x, y}, parent_dir, current_cost);
+        successors_.emplace_back(x, y, parent_dir, current_cost);
         return;
     }
     bool n = false, s = false, w = false, e = false;
@@ -191,9 +184,9 @@ void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // 
             }
             const auto edge_cost = grid_->GCost(kN);
             if (next_dir) {
-                successors_.emplace_back(Point{x, y - 1}, next_dir, current_cost + edge_cost);
+                successors_.emplace_back(x, y - 1, next_dir, current_cost + edge_cost);
             } else if (current_cost >= jump_limit_) {
-                successors_.emplace_back(Point{x, y - 1}, kN, current_cost + edge_cost);
+                successors_.emplace_back(x, y - 1, kN, current_cost + edge_cost);
             } else {
                 GetSuccessors(x, y - 1, kN, current_cost + edge_cost);
             }
@@ -213,10 +206,10 @@ void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // 
             }
             const auto edge_cost = grid_->GCost(kS);
             if (next_dir)
-                successors_.emplace_back(Point{x, y + 1}, next_dir, current_cost + edge_cost);
+                successors_.emplace_back(x, y + 1, next_dir, current_cost + edge_cost);
             else {
                 if (current_cost >= jump_limit_) {
-                    successors_.emplace_back(Point{x, y + 1}, kS, current_cost + edge_cost);
+                    successors_.emplace_back(x, y + 1, kS, current_cost + edge_cost);
                 } else {
                     GetSuccessors(x, y + 1, kS, current_cost + edge_cost);
                 }
@@ -237,9 +230,9 @@ void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // 
             }
             const auto edge_cost = grid_->GCost(kW);
             if (next_dir) {
-                successors_.emplace_back(Point{x - 1, y}, next_dir, current_cost + edge_cost);
+                successors_.emplace_back(x - 1, y, next_dir, current_cost + edge_cost);
             } else if (current_cost >= jump_limit_) {
-                successors_.emplace_back(Point{x - 1, y}, kW, current_cost + edge_cost);
+                successors_.emplace_back(x - 1, y, kW, current_cost + edge_cost);
             } else {
                 GetSuccessors(x - 1, y, kW, current_cost + edge_cost);
             }
@@ -259,9 +252,9 @@ void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // 
             }
             const auto edge_cost = grid_->GCost(kE);
             if (next_dir) {
-                successors_.emplace_back(Point{x + 1, y}, next_dir, current_cost + edge_cost);
+                successors_.emplace_back(x + 1, y, next_dir, current_cost + edge_cost);
             } else if (current_cost >= jump_limit_) {
-                successors_.emplace_back(Point{x + 1, y}, kE, current_cost + edge_cost);
+                successors_.emplace_back(x + 1, y, kE, current_cost + edge_cost);
             } else {
                 GetSuccessors(x + 1, y, kE, current_cost + edge_cost);
             }
@@ -272,7 +265,7 @@ void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // 
         if (x >= 0 && y >= 0 && grid_->Get(x - 1, y - 1) && n && e) {
             const auto edge_cost = grid_->GCost(kNW);
             if (current_cost >= jump_limit_) {
-                successors_.emplace_back(Point{x - 1, y - 1}, kNW, current_cost + edge_cost);
+                successors_.emplace_back(x - 1, y - 1, kNW, current_cost + edge_cost);
             } else {
                 GetSuccessors(x - 1, y - 1, kNW, current_cost + edge_cost);
             }
@@ -282,7 +275,7 @@ void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // 
         if (x < width_ && y >= 0 && grid_->Get(x + 1, y - 1) && n && w) {
             const auto edge_cost = grid_->GCost(kNE);
             if (current_cost >= jump_limit_) {
-                successors_.emplace_back(Point{x + 1, y - 1}, (kNE), current_cost + edge_cost);
+                successors_.emplace_back(x + 1, y - 1, kNE, current_cost + edge_cost);
             } else {
                 GetSuccessors(x + 1, y - 1, kNE, current_cost + edge_cost);
             }
@@ -292,7 +285,7 @@ void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // 
         if (x >= 0 && y < height_ && grid_->Get(x - 1, y + 1) && s && e) {
             const auto edge_cost = grid_->GCost(kSW);
             if (current_cost >= jump_limit_) {
-                successors_.emplace_back(Point{x - 1, y + 1}, kSW, current_cost + edge_cost);
+                successors_.emplace_back(x - 1, y + 1, kSW, current_cost + edge_cost);
             } else {
                 GetSuccessors(x - 1, y + 1, kSW, current_cost + edge_cost);
             }
@@ -302,7 +295,7 @@ void JPS::GetSuccessors(const int x, const int y, const uint8_t parent_dir,  // 
         if (x < width_ && y < height_ && grid_->Get(x + 1, y + 1) && s && w) {
             const auto edge_cost = grid_->GCost(kSE);
             if (current_cost >= jump_limit_) {
-                successors_.emplace_back(Point{x + 1, y + 1}, kSE, current_cost + edge_cost);
+                successors_.emplace_back(x + 1, y + 1, kSE, current_cost + edge_cost);
             } else {
                 GetSuccessors(x + 1, y + 1, kSE, current_cost + edge_cost);
             }

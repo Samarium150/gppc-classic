@@ -33,7 +33,6 @@ struct alignas(64) JPSNode {
     size_t id = std::numeric_limits<size_t>::max();
     std::pair<size_t, uint8_t> parent = {std::numeric_limits<size_t>::max(), kAll};
     double g = std::numeric_limits<double>::max();
-    double h = std::numeric_limits<double>::max();
     double f = std::numeric_limits<double>::max();
 
     bool operator>(const JPSNode& other) const noexcept { return f > other.f; }
@@ -67,7 +66,8 @@ public:
 
 private:
     struct alignas(64) Successor {
-        Point point;
+        int x;
+        int y;
         uint8_t direction;
         double cost;
     };
