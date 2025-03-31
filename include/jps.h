@@ -78,11 +78,12 @@ private:
 
     [[nodiscard]] bool IsJumpPoint(int x, int y) const noexcept;
 
-    void GetSuccessors(int x, int y, uint8_t parent_dir, double current_cost = 0,
-                       size_t jump_count = 0) noexcept;
+    void GetSuccessors(int x, int y, uint8_t parent_dir, double current_cost = 0) noexcept;
 
     void Interpolate(const std::vector<Point>& path) noexcept;
 
+    int width_{};
+    int height_{};
     size_t jump_limit_ = std::numeric_limits<size_t>::max();
     std::vector<bool> jump_points_{};
     std::vector<Successor> successors_{};
