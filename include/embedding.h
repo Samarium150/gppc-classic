@@ -67,7 +67,7 @@ private:
 
     void GetConnectedComponents() noexcept;
 
-    [[nodiscard]] Point GetRandomState(uint8_t component) const noexcept;
+    [[nodiscard]] Point GetRandomState(uint16_t component) const noexcept;
 
     static Point GetFarthestState(const Point& point, AStar& search,
                                   const std::shared_ptr<Grid>& grid) noexcept;
@@ -75,9 +75,9 @@ private:
     static Point GetFarthestState(const std::vector<Point>& points, AStar& search,
                                   const std::shared_ptr<Grid>& grid) noexcept;
 
-    void SelectPivots(PivotPlacement placement, uint8_t component) noexcept;
+    void SelectPivots(PivotPlacement placement, uint16_t component) noexcept;
 
-    void Embed(DimensionType type, uint8_t component) noexcept;
+    void Embed(DimensionType type, uint16_t component) noexcept;
 
     static constexpr auto MAX_NUM_COMPONENTS = std::numeric_limits<uint16_t>::max();
     std::shared_ptr<Grid> grid_ = nullptr;

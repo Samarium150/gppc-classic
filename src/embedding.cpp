@@ -57,7 +57,7 @@ bool GridEmbedding::AddDimension(const DimensionType type,
     if (current_dimensions_ == max_dimensions_) {
         return false;
     }
-    for (auto component = 0; component < num_connected_components_; ++component) {
+    for (uint16_t component = 0; component < num_connected_components_; ++component) {
         SelectPivots(placement, component);
         Embed(type, component);
     }
@@ -165,7 +165,7 @@ void GridEmbedding::GetConnectedComponents() noexcept {
     component_indices_.shrink_to_fit();
 }
 
-Point GridEmbedding::GetRandomState(const uint8_t component) const noexcept {
+Point GridEmbedding::GetRandomState(const uint16_t component) const noexcept {
     const auto& indices = component_indices_[component];
     thread_local std::mt19937 gen{std::random_device()()};
     std::uniform_int_distribution<size_t> distribution(0, indices.size() - 1);
@@ -199,7 +199,8 @@ Point GridEmbedding::GetFarthestState(const std::vector<Point>& points, AStar& s
     return farthest_point;
 }
 
-void GridEmbedding::SelectPivots(const PivotPlacement placement, const uint8_t component) noexcept {
+void GridEmbedding::SelectPivots(const PivotPlacement placement,
+                                 const uint16_t component) noexcept {
     switch (metric_) {
         case Metric::kL1: {
             switch (placement) {
@@ -268,7 +269,7 @@ void GridEmbedding::SelectPivots(const PivotPlacement placement, const uint8_t c
     }
 }
 
-void GridEmbedding::Embed(const DimensionType type, const uint8_t component) noexcept {
+void GridEmbedding::Embed(const DimensionType type, const uint16_t component) noexcept {
     for (size_t id = 0; id < grid_->Size(); ++id) {
         if (connected_components_[id] != component) {
             continue;
