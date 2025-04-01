@@ -23,7 +23,7 @@
 #ifndef GPPC_GRID_EMBEDDING_H_
 #define GPPC_GRID_EMBEDDING_H_
 
-#include "jps.h"
+#include "a_star.h"
 
 namespace gppc::algorithm {
 
@@ -48,7 +48,7 @@ public:
 
     enum class PivotPlacement : uint8_t { kFarthest, kHeuristicError };
 
-    GridEmbedding() noexcept = default;
+    explicit GridEmbedding(const std::shared_ptr<Grid>& grid) noexcept;
 
     GridEmbedding(const std::shared_ptr<Grid>& grid, size_t max_dimensions, Metric metric) noexcept;
 
@@ -69,10 +69,10 @@ private:
 
     [[nodiscard]] Point GetRandomState(uint8_t component) const noexcept;
 
-    static Point GetFarthestState(const Point& point, JPS& search,
+    static Point GetFarthestState(const Point& point, AStar& search,
                                   const std::shared_ptr<Grid>& grid) noexcept;
 
-    static Point GetFarthestState(const std::vector<Point>& points, JPS& search,
+    static Point GetFarthestState(const std::vector<Point>& points, AStar& search,
                                   const std::shared_ptr<Grid>& grid) noexcept;
 
     void SelectPivots(PivotPlacement placement, uint8_t component) noexcept;
@@ -84,8 +84,8 @@ private:
     std::shared_ptr<ResidualGrid> residual_grid_ = nullptr;
     size_t max_dimensions_{};
     Metric metric_{};
-    JPS s1{};
-    JPS s2{};
+    AStar s1{};
+    AStar s2{};
     size_t current_dimensions_{};
     std::vector<double> embedding_{};
     std::queue<Point> queue_;

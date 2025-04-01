@@ -20,15 +20,17 @@ public:
 
     virtual ~HeuristicSearch() noexcept = default;
 
-    virtual const std::vector<Point>& GetPath() const noexcept { return path_; }
+    [[nodiscard]] virtual const std::vector<Point>& GetPath() const noexcept { return path_; }
 
-    virtual size_t GetNodeExpanded() const noexcept { return node_expanded_; }
+    [[nodiscard]] virtual size_t GetNodeExpanded() const noexcept { return node_expanded_; }
 
-    virtual const std::vector<T>& GetNodes() const noexcept { return open_closed_list_.GetNodes(); }
+    [[nodiscard]] virtual const std::vector<T>& GetNodes() const noexcept {
+        return open_closed_list_.GetNodes();
+    }
 
-    virtual T PeekOpen() const noexcept { return open_closed_list_.PeekOpen(); }
+    [[nodiscard]] virtual T PeekOpen() const noexcept { return open_closed_list_.PeekOpen(); }
 
-    virtual bool EmptyOpen() const noexcept { return open_closed_list_.EmptyOpen(); }
+    [[nodiscard]] virtual bool EmptyOpen() const noexcept { return open_closed_list_.EmptyOpen(); }
 
     auto& SetHeuristic(std::function<double(const Point&, const Point&)> heuristic) noexcept {
         heuristic_ = std::move(heuristic);

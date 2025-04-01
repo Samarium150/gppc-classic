@@ -47,7 +47,7 @@ public:
         return node;
     }
 
-    T PeekOpen() const noexcept { return open_.top(); }
+    [[nodiscard]] T PeekOpen() const noexcept { return open_.top(); }
 
     [[nodiscard]] bool EmptyOpen() const noexcept { return open_.empty(); }
 

@@ -37,6 +37,8 @@ double ResidualGrid::GCost(const Point& a, const Point& b) const noexcept {
     return std::max(Grid::GCost(a, b) - heuristic_(a, b), 0.0);
 }
 
+GridEmbedding::GridEmbedding(const std::shared_ptr<Grid>& grid) noexcept : grid_(grid) {}
+
 GridEmbedding::GridEmbedding(const std::shared_ptr<Grid>& grid, const size_t max_dimensions,
                              const Metric metric) noexcept
     : grid_(grid),
@@ -45,10 +47,8 @@ GridEmbedding::GridEmbedding(const std::shared_ptr<Grid>& grid, const size_t max
       max_dimensions_(max_dimensions),
       metric_(metric),
       embedding_(grid_->Size() * max_dimensions_, -1) {
-    s1.SetJumpLimit(0).StopAfterGoal(false).SetHeuristic(
-        [](const Point&, const Point&) { return 0.0; });
-    s2.SetJumpLimit(0).StopAfterGoal(false).SetHeuristic(
-        [](const Point&, const Point&) { return 0.0; });
+    s1.StopAfterGoal(false).SetHeuristic([](const Point&, const Point&) { return 0.0; });
+    s2.StopAfterGoal(false).SetHeuristic([](const Point&, const Point&) { return 0.0; });
     GetConnectedComponents();
 }
 
@@ -66,6 +66,9 @@ bool GridEmbedding::AddDimension(const DimensionType type,
 }
 
 double GridEmbedding::HCost(const Point& a, const Point& b) const noexcept {
+    if (!grid_) {
+        return 0;
+    }
     double h = 0.0;
     const auto a_id = grid_->Pack(a);
     const auto b_id = grid_->Pack(b);
@@ -169,7 +172,7 @@ Point GridEmbedding::GetRandomState(const uint8_t component) const noexcept {
     return grid_->Unpack(indices[distribution(gen)]);
 }
 
-Point GridEmbedding::GetFarthestState(const Point& point, JPS& search,
+Point GridEmbedding::GetFarthestState(const Point& point, AStar& search,
                                       const std::shared_ptr<Grid>& grid) noexcept {
     search.Init(grid, point, point);
     Point farthest_point = point;
@@ -181,7 +184,7 @@ Point GridEmbedding::GetFarthestState(const Point& point, JPS& search,
     return farthest_point;
 }
 
-Point GridEmbedding::GetFarthestState(const std::vector<Point>& points, JPS& search,
+Point GridEmbedding::GetFarthestState(const std::vector<Point>& points, AStar& search,
                                       const std::shared_ptr<Grid>& grid) noexcept {
     search.Init(grid, points[0], points[0]);
     for (size_t i = 1; i < points.size(); ++i) {
