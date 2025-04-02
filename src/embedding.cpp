@@ -28,10 +28,10 @@
 namespace gppc::algorithm {
 
 ResidualGrid::ResidualGrid(const Grid& grid,
-                           std::function<double(const Point& a, const Point& b)> heuristic) noexcept
+                           std::function<double(const Point&, const Point&)> heuristic) noexcept
     : Grid(grid), heuristic_(std::move(heuristic)) {}
 
-double ResidualGrid::HCost(const Point& /*a*/, const Point& /*b*/) const noexcept { return 0.0; }
+double ResidualGrid::HCost(const Point&, const Point&) const noexcept { return 0.0; }
 
 double ResidualGrid::GCost(const Point& a, const Point& b) const noexcept {
     return std::max(Grid::GCost(a, b) - heuristic_(a, b), 0.0);
@@ -43,10 +43,10 @@ GridEmbedding::GridEmbedding(const std::shared_ptr<Grid>& grid, const size_t max
                              const Metric metric) noexcept
     : grid_(grid),
       residual_grid_(std::make_shared<ResidualGrid>(
-          *grid, [this](const Point& a, const Point& b) { return this->HCost(a, b); })),
+          *grid, [this](const Point& a, const Point& b) { return HCost(a, b); })),
       max_dimensions_(max_dimensions),
       metric_(metric),
-      embedding_(grid_->Size() * max_dimensions_, -1) {
+      embedding_(grid_->Size() * max_dimensions_, 0) {
     s1.StopAfterGoal(false).SetHeuristic([](const Point&, const Point&) { return 0.0; });
     s2.StopAfterGoal(false).SetHeuristic([](const Point&, const Point&) { return 0.0; });
     GetConnectedComponents();
@@ -69,7 +69,7 @@ double GridEmbedding::HCost(const Point& a, const Point& b) const noexcept {
     if (!grid_) {
         return 0;
     }
-    double h = 0.0;
+    double h = 0;
     const auto a_id = grid_->Pack(a);
     const auto b_id = grid_->Pack(b);
     for (size_t i = 0; i < current_dimensions_; ++i) {

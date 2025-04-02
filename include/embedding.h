@@ -29,15 +29,16 @@ namespace gppc::algorithm {
 
 class ResidualGrid final : public Grid {
 public:
-    explicit ResidualGrid(const Grid& grid,
-                          std::function<double(const Point& a, const Point& b)> heuristic) noexcept;
+    ResidualGrid(const Grid& grid,
+                 std::function<double(const Point& a, const Point& b)> heuristic) noexcept;
 
     [[nodiscard]] double HCost(const Point& a, const Point& b) const noexcept override;
 
     [[nodiscard]] double GCost(const Point& a, const Point& b) const noexcept override;
 
 private:
-    std::function<double(const Point& a, const Point& b)> heuristic_;
+    std::function<double(const Point& a, const Point& b)> heuristic_ =
+        [](const Point&, const Point&) { return 0.0; };
 };
 
 class GridEmbedding {
@@ -88,7 +89,7 @@ private:
     AStar s2{};
     size_t current_dimensions_{};
     std::vector<double> embedding_{};
-    std::queue<Point> queue_;
+    std::queue<Point> queue_{};
     uint16_t num_connected_components_{};
     std::vector<uint16_t> connected_components_{};
     std::vector<std::vector<size_t>> component_indices_{};

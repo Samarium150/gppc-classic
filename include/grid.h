@@ -97,11 +97,12 @@ public:
 
     [[nodiscard]] virtual double GCost(const Point& a, const Point& b) const noexcept;
 
-private:
+protected:
     std::reference_wrapper<const std::vector<bool>> map_;
     size_t width_;
     size_t height_;
 };
+
 }  // namespace gppc
 
 #endif  // GPPC_GRID_H_
