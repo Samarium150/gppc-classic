@@ -29,8 +29,12 @@ namespace gppc::algorithm {
 
 class ResidualGrid final : public Grid {
 public:
+    explicit ResidualGrid(const Grid& grid) noexcept;
+
     ResidualGrid(const Grid& grid,
                  std::function<double(const Point& a, const Point& b)> heuristic) noexcept;
+
+    void SetHeuristic(std::function<double(const Point&, const Point&)> heuristic) noexcept;
 
     [[nodiscard]] double HCost(const Point& a, const Point& b) const noexcept override;
 

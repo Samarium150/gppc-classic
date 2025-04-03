@@ -27,9 +27,16 @@
 
 namespace gppc::algorithm {
 
+ResidualGrid::ResidualGrid(const Grid& grid) noexcept : Grid(grid) {}
+
 ResidualGrid::ResidualGrid(const Grid& grid,
                            std::function<double(const Point&, const Point&)> heuristic) noexcept
     : Grid(grid), heuristic_(std::move(heuristic)) {}
+
+void ResidualGrid::SetHeuristic(
+    std::function<double(const Point&, const Point&)> heuristic) noexcept {
+    heuristic_ = std::move(heuristic);
+}
 
 double ResidualGrid::HCost(const Point&, const Point&) const noexcept { return 0.0; }
 
@@ -42,8 +49,7 @@ GridEmbedding::GridEmbedding(const std::shared_ptr<Grid>& grid) noexcept : grid_
 GridEmbedding::GridEmbedding(const std::shared_ptr<Grid>& grid, const size_t max_dimensions,
                              const Metric metric) noexcept
     : grid_(grid),
-      residual_grid_(std::make_shared<ResidualGrid>(
-          *grid, [this](const Point& a, const Point& b) { return HCost(a, b); })),
+      residual_grid_(std::make_shared<ResidualGrid>(*grid)),
       max_dimensions_(max_dimensions),
       metric_(metric),
       embedding_(grid_->Size() * max_dimensions_, 0) {
@@ -57,7 +63,9 @@ bool GridEmbedding::AddDimension(const DimensionType type,
     if (current_dimensions_ == max_dimensions_) {
         return false;
     }
+    residual_grid_->SetHeuristic([this](const Point& a, const Point& b) { return HCost(a, b); });
     for (uint16_t component = 0; component < num_connected_components_; ++component) {
+        std::cout << "Embedding component " << component << std::endl;
         SelectPivots(placement, component);
         Embed(type, component);
     }
