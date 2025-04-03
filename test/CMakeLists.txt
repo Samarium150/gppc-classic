@@ -8,7 +8,7 @@ set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(GoogleTest)
 enable_testing()
 
-file(COPY ${CMAKE_SOURCE_DIR}/data DESTINATION ${CMAKE_BINARY_DIR}/src)
+file(COPY ${CMAKE_SOURCE_DIR}/benchmarks/grid-maps/iron-harvest DESTINATION ${CMAKE_BINARY_DIR}/test)
 
 file(GLOB TESTS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/test_*.cpp)
 

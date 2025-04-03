@@ -11,4 +11,4 @@ target_link_libraries(run PRIVATE gppc lib)
 add_executable(main main.cpp)
 target_link_libraries(main PRIVATE gppc lib)
 
-file(COPY ${CMAKE_SOURCE_DIR}/data DESTINATION ${CMAKE_BINARY_DIR}/test)
+file(COPY ${CMAKE_SOURCE_DIR}/data DESTINATION ${CMAKE_BINARY_DIR}/src)

@@ -78,5 +78,5 @@ TEST_P(TestJPSEmbeddings, TestInstance) {
     std::cout << "Path length: " << length << std::endl;
 }
 
-INSTANTIATE_TEST_SUITE_P(HOG2, TestJPSEmbeddings, testing::ValuesIn(LoadTestCases("data")),
+INSTANTIATE_TEST_SUITE_P(IH, TestJPSEmbeddings, testing::ValuesIn(LoadTestCases("iron-harvest")),
                          GenerateTestName);

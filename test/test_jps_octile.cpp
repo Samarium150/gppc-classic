@@ -38,5 +38,5 @@ TEST_P(TestJPSOctile, TestInstance) {
     std::cout << "Path length: " << length << std::endl;
 }
 
-INSTANTIATE_TEST_SUITE_P(HOG2, TestJPSOctile, testing::ValuesIn(LoadTestCases("data")),
+INSTANTIATE_TEST_SUITE_P(IH, TestJPSOctile, testing::ValuesIn(LoadTestCases("iron-harvest")),
                          GenerateTestName);
