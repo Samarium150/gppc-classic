@@ -72,6 +72,7 @@ public:
     [[nodiscard]] std::size_t GetNumExperiments() const;
     [[nodiscard]] std::string GetScenarioName() const;
     [[nodiscard]] const Experiment &GetExperiment(std::size_t which) const;
+    [[nodiscard]] const std::vector<Experiment> &Experiments() const;
     void AddExperiment(const Experiment &which);
 
 private:

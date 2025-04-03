@@ -32,3 +32,4 @@ file(GLOB HEADERS ${CMAKE_SOURCE_DIR}/include/*.h*)
 
 add_subdirectory(lib)
 add_subdirectory(src)
+add_subdirectory(test)

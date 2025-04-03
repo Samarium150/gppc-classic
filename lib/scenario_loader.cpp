@@ -135,6 +135,8 @@ const Experiment& ScenarioLoader::GetExperiment(const std::size_t which) const {
     return experiments_[which];
 }
 
+const std::vector<Experiment>& ScenarioLoader::Experiments() const { return experiments_; }
+
 void ScenarioLoader::AddExperiment(const Experiment& which) { experiments_.push_back(which); }
 
 }  // namespace gppc::lib
