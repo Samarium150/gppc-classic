@@ -117,7 +117,7 @@ void RunExperiment(void *data) {
         "max_step_time";
     ofs << header << std::endl;
 
-    for (int x = 0; x < loader.GetNumExperiments(); x++) {
+    for (size_t x = 0; x < loader.GetNumExperiments(); x++) {
         xyLoc s{static_cast<int16_t>(loader.GetExperiment(x).GetStartX()),
                 static_cast<int16_t>(loader.GetExperiment(x).GetStartY())};
         xyLoc g{static_cast<int16_t>(loader.GetExperiment(x).GetGoalX()),

@@ -24,6 +24,7 @@
 #include "baseline.h"
 
 #include <array>
+#include <algorithm>
 #include <cassert>
 #include <queue>
 #include <stack>
@@ -80,7 +81,7 @@ void SetupGrid(Grid& grid) {
             FloodFill(grid, cluster, i, &vector_res);
             assert(!cluster.empty());
             uint64_t sum_x = 0, sum_y = 0;
-            for (const auto [x, y] : cluster) {
+            for (const auto& [x, y] : cluster) {
                 sum_x += x;
                 sum_y += y;
             }

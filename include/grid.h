@@ -27,6 +27,7 @@
 #include <functional>
 #include <iostream>
 #include <memory>  // NOLINT
+#include <string>
 #include <vector>
 
 namespace gppc {
@@ -39,6 +40,7 @@ struct Point {
     Point operator-(const Point& other) const noexcept;
     bool operator==(const Point& other) const noexcept;
     bool operator!=(const Point& other) const noexcept;
+    explicit operator std::string() const;
     friend std::ostream& operator<<(std::ostream& os, const Point& p);
 };
 

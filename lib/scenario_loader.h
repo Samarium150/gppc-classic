@@ -24,6 +24,7 @@
 #ifndef LIB_GPPC_SCENARIO_LOADER_H_
 #define LIB_GPPC_SCENARIO_LOADER_H_
 
+#include <string>
 #include <vector>
 
 namespace gppc::lib {

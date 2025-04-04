@@ -21,8 +21,13 @@
  * SOFTWARE.
  */
 
+#include <algorithm>
 #include <cassert>
+#include <chrono>
+#include <cmath>
 #include <fstream>
+#include <iomanip>
+#include <optional>
 #include <sstream>
 
 #include "grid.h"
@@ -217,7 +222,7 @@ int main() {
     // algo.SetPhi([&weight](const double h, const double g) { return g + weight * h; });
     gppc::lib::Timer timer;
     gppc::lib::Timer::duration elapsed_time{};
-    for (int n = 0; n < loader.GetNumExperiments(); ++n) {
+    for (size_t n = 0; n < loader.GetNumExperiments(); ++n) {
         const auto& experiment = loader.GetExperiment(n);
         const auto start = gppc::Point(experiment.GetStartX(), experiment.GetStartY());
         const auto goal = gppc::Point(experiment.GetGoalX(), experiment.GetGoalY());
@@ -252,6 +257,7 @@ int main() {
         elapsed_time += timer.GetElapsedTime();
     }
     std::cout << "Time elapsed: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time) << std::endl;
+              << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time).count() 
+              << "ms" << std::endl;
     return 0;
 }

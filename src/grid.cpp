@@ -34,8 +34,12 @@ bool Point::operator==(const Point& other) const noexcept { return x == other.x 
 
 bool Point::operator!=(const Point& other) const noexcept { return x != other.x || y != other.y; }
 
+Point::operator std::string() const {
+    return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
+}
+
 std::ostream& operator<<(std::ostream& os, const Point& p) {
-    return os << "(" << p.x << ", " << p.y << ")";
+    return os << std::string(p);
 }
 
 Grid::Grid(const std::vector<bool>& map, const size_t width, const size_t height) noexcept

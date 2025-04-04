@@ -3,21 +3,22 @@
 
 #include <gtest/gtest.h>
 
+#include <cmath>
 #include <limits>
 
 #include "grid.h"
 #include "scenario_loader.h"
 
-struct alignas(64) Map {
+struct Map {
     std::string name;
     std::vector<bool> data;
-    int width;
-    int height;
+    size_t width;
+    size_t height;
 };
 
 extern std::vector<Map> kMaps;
 
-struct alignas(64) TestCase {
+struct TestCase {
     size_t map_id;
     size_t case_id;
     gppc::Point start;
@@ -31,11 +32,20 @@ struct alignas(64) TestCase {
           start(experiment.GetStartX(), experiment.GetStartY()),
           goal(experiment.GetGoalX(), experiment.GetGoalY()),
           expected_length(experiment.GetDistance()) {}
+
+    explicit operator std::string() const {
+        return std::to_string(case_id) + ": " + std::string(start) + " -> " + std::string(goal) +
+               " | " + std::to_string(expected_length);
+    }
 };
 
-std::vector<TestCase> LoadTestCases(const std::string& directory) noexcept;
+std::vector<TestCase> LoadTestCases(const std::string& filename) noexcept;
 
 std::string GenerateTestName(const testing::TestParamInfo<TestCase>& info) noexcept;
+
+void PrintMap(const std::vector<bool>& map, int width, int height,
+              std::optional<gppc::Point> start = std::nullopt,
+              std::optional<gppc::Point> goal = std::nullopt);
 
 double GetPathLength(const std::vector<gppc::Point>& path) noexcept;
 
