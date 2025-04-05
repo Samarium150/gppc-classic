@@ -21,7 +21,7 @@ protected:
 
     static void TearDownTestSuite() {
         algorithms->at(init - 1) = {};
-        if (init == kMaps.size() - 1) {
+        if (init == kMaps.size()) {
             delete algorithms;
             algorithms = nullptr;
         }

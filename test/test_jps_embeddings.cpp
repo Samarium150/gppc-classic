@@ -54,7 +54,7 @@ protected:
     static void TearDownTestSuite() {
         embeddings->at(init - 1).clear();
         algorithms->at(init - 1) = {};
-        if (init == kMaps.size() - 1) {
+        if (init == kMaps.size()) {
             delete embeddings;
             embeddings = nullptr;
             delete algorithms;
