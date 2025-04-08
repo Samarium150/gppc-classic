@@ -97,6 +97,7 @@ private:
     uint16_t num_connected_components_{};
     std::vector<uint16_t> connected_components_{};
     std::vector<std::vector<size_t>> component_indices_{};
+    size_t largest_component_{};
     std::vector<std::vector<Point>> pivots_{};
 };
 

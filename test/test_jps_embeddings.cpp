@@ -46,8 +46,8 @@ protected:
         const auto duration = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
         std::cout << "Time Elapsed: " << duration << "s" << std::endl;
         algorithms->emplace_back(grid);
-        algorithms->back().SetHeuristic([&emb](const auto& a, const auto& b) {
-            return std::max(emb[0].HCost(a, b), emb[1].HCost(a, b));
+        algorithms->back().SetHeuristic([&emb, grid](const auto& a, const auto& b) {
+            return std::max(grid->HCost(a, b), std::max(emb[0].HCost(a, b), emb[1].HCost(a, b)));
         });
     }
 
@@ -71,7 +71,7 @@ std::vector<std::vector<gppc::algorithm::GridEmbedding>>* TestJPSEmbeddings::emb
 
 TEST_P(TestJPSEmbeddings, TestInstance) {
     const auto& param = GetParam();
-    std::cout << param.case_id << ": " << param.start << " -> " << param.goal << std::endl;
+    std::cout << std::string(param) << std::endl;
     auto& algorithm = (*algorithms)[param.map_id];
     const auto start = std::chrono::high_resolution_clock::now();
     ASSERT_TRUE(algorithm(param.start, param.goal) || param.expected_length == 0);

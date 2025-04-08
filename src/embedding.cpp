@@ -22,6 +22,7 @@
 
 #include "embedding.h"
 
+#include <algorithm>
 #include <fstream>
 #include <random>
 
@@ -64,11 +65,8 @@ bool GridEmbedding::AddDimension(const DimensionType type,
         return false;
     }
     residual_grid_->SetHeuristic([this](const Point& a, const Point& b) { return HCost(a, b); });
-    for (uint16_t component = 0; component < num_connected_components_; ++component) {
-        std::cout << "Embedding component " << component << std::endl;
-        SelectPivots(placement, component);
-        Embed(type, component);
-    }
+    SelectPivots(placement, largest_component_);
+    Embed(type, largest_component_);
     ++current_dimensions_;
     return true;
 }
@@ -171,6 +169,10 @@ void GridEmbedding::GetConnectedComponents() noexcept {
     }
     pivots_.resize(num_connected_components_);
     component_indices_.shrink_to_fit();
+    largest_component_ = std::distance(
+        component_indices_.begin(),
+        std::ranges::max_element(component_indices_,
+                                 [](const auto& a, const auto& b) { return a.size() < b.size(); }));
 }
 
 Point GridEmbedding::GetRandomState(const uint16_t component) const noexcept {
