@@ -61,7 +61,7 @@ bool JPS::Init(const Point& start, const Point& goal) noexcept {
     }
     path_.clear();
     node_expanded_ = 0;
-    open_closed_list_.Reset(grid_->Size());
+    open_closed_list_.Reset();
     start_id_ = grid_->Pack(start);
     goal_id_ = grid_->Pack(goal);
     goal_ = goal;
@@ -89,7 +89,8 @@ bool JPS::operator()() noexcept {
     const auto current = open_closed_list_.PopOpen();
     if (current.id == goal_id_) {
         std::vector<Point> path;
-        for (auto id = goal_id_; id != start_id_; id = open_closed_list_.GetNode(id).parent.first) {
+        for (auto id = goal_id_; id != start_id_;
+             id = open_closed_list_.GetNode(id).value().parent.first) {
             path.push_back(grid_->Unpack(id));
         }
         path.push_back(grid_->Unpack(start_id_));
@@ -106,9 +107,9 @@ bool JPS::operator()() noexcept {
     GetSuccessors(x, y, current.parent.second);
     for (const auto& [xx, yy, direction, cost] : successors_) {
         if (const auto successor_id = grid_->Pack(xx, yy);
-            !open_closed_list_.InClosed(successor_id)) {
+            !open_closed_list_.Closed(successor_id)) {
             if (const auto successor_g = current.g + cost;
-                successor_g < open_closed_list_.GetNode(successor_id).g) {
+                successor_g < open_closed_list_.GetNode(successor_id).value_or(JPSNode{}).g) {
                 open_closed_list_.AddOpen(open_closed_list_.SetNode(
                     successor_id, {successor_id,
                                    {current.id, direction},

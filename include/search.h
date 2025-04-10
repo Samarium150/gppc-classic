@@ -24,8 +24,8 @@ public:
 
     [[nodiscard]] virtual size_t GetNodeExpanded() const noexcept { return node_expanded_; }
 
-    [[nodiscard]] virtual const std::vector<T>& GetNodes() const noexcept {
-        return open_closed_list_.GetNodes();
+    [[nodiscard]] virtual T GetNode(const size_t index) const noexcept {
+        return open_closed_list_.GetNode(index).value_or(T{});
     }
 
     [[nodiscard]] virtual T PeekOpen() const noexcept { return open_closed_list_.PeekOpen(); }

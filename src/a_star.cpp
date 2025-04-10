@@ -48,7 +48,7 @@ bool AStar::Init(const Point& start, const Point& goal) noexcept {
     }
     path_.clear();
     node_expanded_ = 0;
-    open_closed_list_.Reset(grid_->Size());
+    open_closed_list_.Reset();
     start_id_ = grid_->Pack(start);
     goal_id_ = grid_->Pack(goal);
     goal_ = goal;
@@ -73,7 +73,8 @@ bool AStar::operator()() noexcept {
     }
     const auto current = open_closed_list_.PopOpen();
     if (stop_after_goal_ && current.id == goal_id_) {
-        for (auto id = goal_id_; id != start_id_; id = open_closed_list_.GetNode(id).parent_id) {
+        for (auto id = goal_id_; id != start_id_;
+             id = open_closed_list_.GetNode(id).value().parent_id) {
             path_.push_back(grid_->Unpack(id));
         }
         path_.push_back(grid_->Unpack(start_id_));
@@ -89,9 +90,9 @@ bool AStar::operator()() noexcept {
     GetSuccessors(current_point.x, current_point.y);
     for (const auto& successor : successors_) {
         if (const auto successor_id = grid_->Pack(successor);
-            !open_closed_list_.InClosed(successor_id)) {
+            !open_closed_list_.Closed(successor_id)) {
             if (const auto successor_g = current.g + grid_->GCost(current_point, successor);
-                successor_g < open_closed_list_.GetNode(successor_id).g) {
+                successor_g < open_closed_list_.GetNode(successor_id).value_or(AstarNode{}).g) {
                 const auto successor_h = heuristic_(successor, goal_);
                 const auto successor_f = phi_(successor_h, successor_g);
                 open_closed_list_.AddOpen(open_closed_list_.SetNode(

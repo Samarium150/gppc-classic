@@ -232,7 +232,7 @@ void GridEmbedding::SelectPivots(const PivotPlacement placement,
                             continue;
                         }
                         auto candidate = grid_->Unpack(id);
-                        const double g = s2.GetNodes()[id].g;
+                        const double g = s2.GetNode(id).g;
                         if (const double he = 3 * g - 2 * grid_->HCost(rand, candidate);
                             he > max_he) {
                             max_he = he;
@@ -246,7 +246,7 @@ void GridEmbedding::SelectPivots(const PivotPlacement placement,
                             continue;
                         }
                         auto candidate = grid_->Unpack(id);
-                        const double g = s1.GetNodes()[id].g;
+                        const double g = s1.GetNode(id).g;
                         if (const auto he = 3 * g - 2 * grid_->HCost(p1, candidate); he > max_he) {
                             max_he = he;
                             p2 = candidate;
@@ -284,7 +284,7 @@ void GridEmbedding::Embed(const DimensionType type, const uint16_t component) no
         if (connected_components_[id] != component) {
             continue;
         }
-        if (const auto dp1 = s1.GetNodes()[id].g; dp1 != std::numeric_limits<double>::max()) {
+        if (const auto dp1 = s1.GetNode(id).g; dp1 != std::numeric_limits<double>::max()) {
             const auto index = id * max_dimensions_ + current_dimensions_;
             switch (type) {
                 case DimensionType::kDifferential: {
@@ -292,8 +292,8 @@ void GridEmbedding::Embed(const DimensionType type, const uint16_t component) no
                     break;
                 }
                 case DimensionType::kFastMap: {
-                    const auto dp1p2 = s1.GetNodes()[grid_->Pack(pivots_[component].back())].g;
-                    const auto dp2 = s2.GetNodes()[id].g;
+                    const auto dp1p2 = s1.GetNode(grid_->Pack(pivots_[component].back())).g;
+                    const auto dp2 = s2.GetNode(id).g;
                     embedding_[index] = (dp1 + dp1p2 - dp2) / 2;
                     break;
                 }

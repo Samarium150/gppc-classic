@@ -24,6 +24,7 @@
 #define GPPC_OPEN_CLOSED_LIST_H_
 
 #include <queue>
+#include <unordered_set>
 #include <vector>
 
 template <typename T, typename Compare>
@@ -31,12 +32,10 @@ class OpenClosedList {
 public:
     OpenClosedList() noexcept = default;
 
-    explicit OpenClosedList(const size_t size) noexcept { Reset(size); }
-
-    void Reset(const size_t size) noexcept {
+    void Reset() noexcept {
         open_ = {};
-        closed_.assign(size, false);
-        nodes_.assign(size, T{});
+        closed_.clear();
+        nodes_.clear();
     }
 
     void AddOpen(const T node) noexcept { open_.push(node); }
@@ -51,29 +50,32 @@ public:
 
     [[nodiscard]] bool EmptyOpen() const noexcept { return open_.empty(); }
 
-    [[nodiscard]] bool InClosed(const size_t index) const noexcept { return closed_[index]; }
+    [[nodiscard]] bool Closed(const size_t index) const noexcept { return closed_.contains(index); }
 
     bool Close(const size_t index) noexcept {
-        if (!closed_[index]) {
-            return closed_[index] = true;
+        if (!closed_.contains(index)) {
+            return closed_.emplace(index).second;
         }
         return false;
     }
 
-    T& GetNode(const size_t index) noexcept { return nodes_[index]; }
+    std::optional<T> GetNode(const size_t index) const noexcept {
+        auto it = nodes_.find(index);
+        return it == nodes_.end() ? std::nullopt : std::make_optional(it->second);
+    }
 
     T& SetNode(const size_t index, const T node) noexcept {
         return nodes_[index] = std::move(node);
     }
 
-    [[nodiscard]] std::vector<T>& GetNodes() noexcept { return nodes_; }
+    // [[nodiscard]] std::vector<T>& GetNodes() noexcept { return nodes_; }
 
-    [[nodiscard]] const std::vector<T>& GetNodes() const noexcept { return nodes_; }
+    // [[nodiscard]] const std::vector<T>& GetNodes() const noexcept { return nodes_; }
 
 private:
     std::priority_queue<T, std::vector<T>, Compare> open_{};
-    std::vector<bool> closed_{};
-    std::vector<T> nodes_{};
+    std::unordered_set<size_t> closed_{};
+    std::unordered_map<size_t, T> nodes_{};
 };
 
 #endif  // GPPC_OPEN_CLOSED_LIST_H_
