@@ -68,11 +68,11 @@ public:
     bool operator==(const GridEmbedding& other) const noexcept;
 
 private:
-    void FloodFill(const Point& point) noexcept;
+    void FloodFill(const Point& point, std::vector<size_t>& component) noexcept;
 
-    void GetConnectedComponents() noexcept;
+    void FindLargestComponent() noexcept;
 
-    [[nodiscard]] Point GetRandomState(uint16_t component) const noexcept;
+    [[nodiscard]] Point GetRandomState() const noexcept;
 
     static Point GetFarthestState(const Point& point, AStar& search,
                                   const std::shared_ptr<Grid>& grid) noexcept;
@@ -80,11 +80,10 @@ private:
     static Point GetFarthestState(const std::vector<Point>& points, AStar& search,
                                   const std::shared_ptr<Grid>& grid) noexcept;
 
-    void SelectPivots(PivotPlacement placement, uint16_t component) noexcept;
+    void SelectPivots(PivotPlacement placement) noexcept;
 
-    void Embed(DimensionType type, uint16_t component) noexcept;
+    void Embed(DimensionType type) noexcept;
 
-    static constexpr auto MAX_NUM_COMPONENTS = std::numeric_limits<uint16_t>::max();
     std::shared_ptr<Grid> grid_ = nullptr;
     std::shared_ptr<ResidualGrid> residual_grid_ = nullptr;
     size_t max_dimensions_{};
@@ -94,11 +93,8 @@ private:
     size_t current_dimensions_{};
     std::vector<double> embedding_{};
     std::queue<Point> queue_{};
-    uint16_t num_connected_components_{};
-    std::vector<uint16_t> connected_components_{};
-    std::vector<std::vector<size_t>> component_indices_{};
-    size_t largest_component_{};
-    std::vector<std::vector<Point>> pivots_{};
+    std::vector<size_t> largest_component_indices_{};
+    std::vector<Point> pivots_{};
 };
 
 }  // namespace gppc::algorithm
