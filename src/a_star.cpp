@@ -51,6 +51,7 @@ bool AStar::Init(const Point& start, const Point& goal) noexcept {
     open_closed_list_.Reset();
     start_id_ = grid_->Pack(start);
     goal_id_ = grid_->Pack(goal);
+    start_ = start;
     goal_ = goal;
     const auto h = heuristic_(start, goal);
     const auto f = phi_(h, 0.0);

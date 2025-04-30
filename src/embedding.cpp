@@ -128,7 +128,7 @@ bool GridEmbedding::operator==(const GridEmbedding& other) const noexcept {
 }
 
 void GridEmbedding::FloodFill(const Point& point, std::vector<size_t>& component) noexcept {
-    std::vector<bool> visited(grid_->Size(), false);
+    std::vector visited(grid_->Size(), false);
     queue_.push(point);
     const auto start_id = grid_->Pack(point);
     visited[start_id] = true;

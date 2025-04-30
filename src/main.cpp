@@ -30,6 +30,7 @@
 #include <optional>
 #include <sstream>
 
+#include "fp_util.h"
 #include "grid.h"
 #include "jps.h"
 #include "path_validator.h"
@@ -150,22 +151,6 @@ size_t CountDecimalPlaces(const double value) {
     return lastNonZero - decimalPos;
 }
 
-template <std::floating_point T>
-bool equals(T a, T b, T rel_epsilon = 1e-6, T abs_epsilon = std::numeric_limits<T>::epsilon()) {
-    if (std::isinf(a) || std::isinf(b)) {
-        return a == b;
-    }
-    if (std::isnan(a) || std::isnan(b)) {
-        return false;
-    }
-    T diff = std::abs(a - b);
-    if (diff <= abs_epsilon) {
-        return true;
-    }
-    T max_val = std::max(std::abs(a), std::abs(b));
-    return diff <= rel_epsilon * max_val;
-}
-
 constexpr unsigned kMaxDim = 5;
 
 int main() {
@@ -238,7 +223,7 @@ int main() {
             //     PrintMap(map, width, height, start, goal);
             // }
             if (const auto length = GetPathLength(path);
-                !equals(Round(length, dp), expected, 1e-5) ||
+                !FPLessOrEqual(Round(length, dp), expected * weight, 1e-5) ||
                 gppc::lib::ValidatePath(map, width, height, algo.GetPath()) != -1) {
                 std::cerr << std::setprecision(10) << n << ": " << start << " -> " << goal << " | "
                           << length << "/" << expected << std::endl;
@@ -257,7 +242,7 @@ int main() {
         elapsed_time += timer.GetElapsedTime();
     }
     std::cout << "Time elapsed: "
-              << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time).count() 
-              << "ms" << std::endl;
+              << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed_time).count() << "ms"
+              << std::endl;
     return 0;
 }

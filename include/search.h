@@ -8,7 +8,7 @@
 
 namespace gppc::algorithm {
 
-template <typename T, typename CompareT>
+template <typename T>
 class HeuristicSearch {
 public:
     HeuristicSearch() noexcept = default;
@@ -85,9 +85,10 @@ protected:
     std::vector<Point> path_{};
     size_t start_id_ = std::numeric_limits<size_t>::max();
     size_t goal_id_ = std::numeric_limits<size_t>::max();
-    Point goal_{-1, -1};
+    Point start_{};
+    Point goal_{};
     bool stop_after_goal_ = true;
-    OpenClosedList<T, CompareT> open_closed_list_{};
+    OpenClosedList<T> open_closed_list_{};
     std::function<double(const Point&, const Point&)> heuristic_ =
         [this](const Point& a, const Point& b) { return grid_ ? grid_->HCost(a, b) : 0.0; };
     std::function<double(double, double)> phi_ = [](const double h, const double g) {

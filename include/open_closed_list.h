@@ -24,10 +24,10 @@
 #define GPPC_OPEN_CLOSED_LIST_H_
 
 #include <queue>
+#include <unordered_map>
 #include <unordered_set>
-#include <vector>
 
-template <typename T, typename Compare>
+template <typename T>
 class OpenClosedList {
 public:
     OpenClosedList() noexcept = default;
@@ -50,32 +50,31 @@ public:
 
     [[nodiscard]] bool EmptyOpen() const noexcept { return open_.empty(); }
 
-    [[nodiscard]] bool Closed(const size_t index) const noexcept { return closed_.contains(index); }
+    [[nodiscard]] bool Closed(const uint64_t hash) const noexcept { return closed_.contains(hash); }
 
-    bool Close(const size_t index) noexcept {
-        if (!closed_.contains(index)) {
-            return closed_.emplace(index).second;
+    bool Close(const uint64_t hash) noexcept {
+        if (!closed_.contains(hash)) {
+            return closed_.emplace(hash).second;
         }
         return false;
     }
 
-    std::optional<T> GetNode(const size_t index) const noexcept {
-        auto it = nodes_.find(index);
+    std::optional<T> GetNode(const uint64_t hash) const noexcept {
+        auto it = nodes_.find(hash);
         return it == nodes_.end() ? std::nullopt : std::make_optional(it->second);
     }
 
-    T& SetNode(const size_t index, const T node) noexcept {
-        return nodes_[index] = std::move(node);
+    T& SetNode(const uint64_t hash, const T node) noexcept {
+        return nodes_[hash] = std::move(node);
     }
 
-    // [[nodiscard]] std::vector<T>& GetNodes() noexcept { return nodes_; }
-
-    // [[nodiscard]] const std::vector<T>& GetNodes() const noexcept { return nodes_; }
-
 private:
-    std::priority_queue<T, std::vector<T>, Compare> open_{};
-    std::unordered_set<size_t> closed_{};
-    std::unordered_map<size_t, T> nodes_{};
+    struct Hash {
+        size_t operator()(const uint64_t& key) const noexcept { return key; }
+    };
+    std::priority_queue<T> open_{};
+    std::unordered_set<uint64_t, Hash> closed_{};
+    std::unordered_map<uint64_t, T, Hash> nodes_{};
 };
 
 #endif  // GPPC_OPEN_CLOSED_LIST_H_

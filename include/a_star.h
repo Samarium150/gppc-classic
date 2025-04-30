@@ -23,8 +23,8 @@
 #ifndef GPPC_A_STAR_H_
 #define GPPC_A_STAR_H_
 
+#include "fp_util.h"
 #include "grid.h"
-#include "open_closed_list.h"
 #include "search.h"
 
 namespace gppc::algorithm {
@@ -36,10 +36,15 @@ struct alignas(64) AstarNode {
     double h = std::numeric_limits<double>::max();
     double f = std::numeric_limits<double>::max();
 
-    bool operator>(const AstarNode& other) const noexcept { return f > other.f; }
+    auto operator<=>(const AstarNode& other) const noexcept {
+        if (const auto order = FPCompare(other.f, f); order != std::partial_ordering::equivalent) {
+            return order;
+        }
+        return FPCompare(g, other.g);
+    }
 };
 
-class AStar final : public HeuristicSearch<AstarNode, std::greater<>> {
+class AStar final : public HeuristicSearch<AstarNode> {
 public:
     AStar() = default;
 

@@ -25,6 +25,7 @@
 
 #include <stack>
 
+#include "fp_util.h"
 #include "grid.h"
 #include "open_closed_list.h"
 #include "search.h"
@@ -37,10 +38,15 @@ struct alignas(64) JPSNode {
     double g = std::numeric_limits<double>::max();
     double f = std::numeric_limits<double>::max();
 
-    bool operator>(const JPSNode& other) const noexcept { return f > other.f; }
+    auto operator<=>(const JPSNode& other) const noexcept {
+        if (const auto order = FPCompare(other.f, f); order != std::partial_ordering::equivalent) {
+            return order;
+        }
+        return FPCompare(g, other.g);
+    }
 };
 
-class JPS final : public HeuristicSearch<JPSNode, std::greater<>> {
+class JPS final : public HeuristicSearch<JPSNode> {
 public:
     JPS() noexcept = default;
 
